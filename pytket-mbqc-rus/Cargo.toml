@@ -1,0 +1,15 @@
+[package]
+name = "pytket-mbqc-rus"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# cdylib specifies a dynamic system library will be produced. This is used when 
+# compiling a dynamic library to be loaded from another language, as is the 
+# case for hybrid compute.
+crate-type = ["cdylib"]
+
+[dependencies]
+fastrand = "2.0.1"

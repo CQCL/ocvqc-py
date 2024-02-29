@@ -1,10 +1,14 @@
 from pytket import Circuit
-from pytket.unit_id import Qubit, Bit, BitRegister
+from pytket.unit_id import Qubit, BitRegister
 import math
 
 class QubitManager(Circuit):
 
     def __init__(self, n_qubits: int) -> None:
+
+        index_bits_required = max(1, math.ceil(math.log2(n_qubits)))
+        if index_bits_required >= 32:
+            raise Exception("You cannot index that many qubits.")
 
         self.qubit_list = [Qubit(index=i) for i in range(n_qubits)]
         self.qubit_initialised = {qubit:False for qubit in self.qubit_list}
@@ -19,11 +23,7 @@ class QubitManager(Circuit):
             self.add_c_register(register=x_corr_reg)
             self.add_c_register(register=z_corr_reg)
 
-        index_bits_required = max(1, math.ceil(math.log2(n_qubits)))
-        if index_bits_required >= 32:
-            raise Exception("You cannot index that many qubits.")
-
-        self.index_reg = BitRegister(name=f"index", size=index_bits_required)
+        self.index_reg = BitRegister(name="index", size=index_bits_required)
         self.add_c_register(register=self.index_reg)
 
     def get_qubit(self) -> Qubit:
@@ -38,6 +38,7 @@ class QubitManager(Circuit):
 
         self.add_c_setreg(0, self.qubit_x_corr_reg[qubit])
         self.add_c_setreg(0, self.qubit_z_corr_reg[qubit])
+        self.add_c_setreg(0, self.qubit_meas_reg[qubit])
 
         return qubit
 
@@ -48,11 +49,11 @@ class QubitManager(Circuit):
         self.Reset(qubit=qubit)
         self.H(qubit=qubit)
         
-        return qubit            
+        return qubit
+
+    def return_qubit(self, qubit: Qubit) -> None:
+        self.qubit_list.insert(0, qubit)         
 
     def managed_measure(self, qubit:Qubit) -> None:
         super().Measure(qubit=qubit, bit=self.qubit_meas_reg[qubit][0])
         self.return_qubit(qubit)
-
-    def return_qubit(self, qubit: Qubit) -> None:
-        self.qubit_list.insert(0, qubit)

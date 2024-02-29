@@ -2,6 +2,7 @@ from pytket_mbqc_py.qubit_manager import QubitManager
 from typing import List, Tuple, Dict
 from pytket import Qubit
 from pytket_mbqc_py.wasm_file_handler import get_wasm_file_handler
+import networkx as nx
 
 
 class GraphCircuit(QubitManager):
@@ -16,11 +17,10 @@ class GraphCircuit(QubitManager):
         self.wfh = get_wasm_file_handler()
         self.add_wasm_to_reg("init_corrections", self.wfh, [], [])
 
-        self.vertex_future: List[List[int]] = []
-        self.vertex_history: List[List[int]] = []
+        self.graph = nx.Graph()
 
         self.vertex_flow: Dict[int, int] = dict()
-        self.vertex_flow_inverse: List[List[int]] = []
+        self.vertex_flow_inverse: Dict[int, List[int]] = dict()
 
         self.output_vertices: List[int] = []
 
@@ -36,21 +36,32 @@ class GraphCircuit(QubitManager):
         return {vertex: self.vertex_qubit[vertex] for vertex in output_vertices}
 
     def correct_outputs(self) -> None:
+        
+        unmeasured_graph_verices = [
+            vertex for vertex in self.vertex_flow.keys() if not self.vertex_measured[vertex]
+        ]
+        if len(unmeasured_graph_verices) > 0:
+            raise Exception(
+                "Only output vertices can be unmeasured. "
+                + f"In particular {unmeasured_graph_verices} must be measured."
+            )
+
         for vertex in self.output_qubits.keys():
             self._apply_correction(vertex=vertex)
 
     def _vertex_neighbour(self, vertex:int) -> List[int]:
-        return self.vertex_future[vertex] + self.vertex_history[vertex]
+        return self.graph.neighbors(n=vertex)
 
     def _add_vertex(self, qubit:Qubit) -> int:
 
         self.vertex_qubit.append(qubit)
-        self.vertex_future.append([])
-        self.vertex_history.append([])
         self.vertex_measured.append(False)
-        self.vertex_flow_inverse.append([])
 
-        return len(self.vertex_qubit) - 1
+        index = len(self.vertex_qubit) - 1
+        self.graph.add_node(node_for_adding=index)
+        self.vertex_flow_inverse[index] = []
+
+        return index
 
     def add_input_vertex(self) -> Tuple[Qubit, int]:
 
@@ -143,9 +154,13 @@ class GraphCircuit(QubitManager):
             self.vertex_qubit[vertex_one],
             self.vertex_qubit[vertex_two]
         )
-        
-        self.vertex_future[vertex_one].append(vertex_two)
-        self.vertex_history[vertex_two].append(vertex_one)
+                
+        assert vertex_one in self.graph.nodes
+        assert vertex_two in self.graph.nodes
+        self.graph.add_edge(
+            u_of_edge=vertex_one,
+            v_of_edge=vertex_two,
+        )
 
     def _apply_correction(self, vertex: int) -> None:
 

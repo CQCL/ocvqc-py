@@ -19,12 +19,11 @@ class QubitManager(Circuit):
             self.add_c_register(register=x_corr_reg)
             self.add_c_register(register=z_corr_reg)
 
-        size = max(1, math.ceil(math.log2(n_qubits)))
-        
-        if size >= 32:
+        index_bits_required = max(1, math.ceil(math.log2(n_qubits)))
+        if index_bits_required >= 32:
             raise Exception("You cannot index that many qubits.")
 
-        self.index_reg = BitRegister(name=f"index", size=size)
+        self.index_reg = BitRegister(name=f"index", size=index_bits_required)
         self.add_c_register(register=self.index_reg)
 
     def get_qubit(self) -> Qubit:
@@ -39,7 +38,6 @@ class QubitManager(Circuit):
 
         self.add_c_setreg(0, self.qubit_x_corr_reg[qubit])
         self.add_c_setreg(0, self.qubit_z_corr_reg[qubit])
-        # self.add_c_setreg(0, self.qubit_meas_reg[qubit])
 
         return qubit
 
@@ -47,12 +45,8 @@ class QubitManager(Circuit):
 
         qubit = self.get_qubit()
 
-        # self.add_barrier(units=self.qubits + self.bits)
-
         self.Reset(qubit=qubit)
         self.H(qubit=qubit)
-
-        # self.add_barrier(units=self.qubits + self.bits)
         
         return qubit            
 

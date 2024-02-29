@@ -7,11 +7,14 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "<3.12,>=3.10"
-notebook = "^7.1.0"
+notebook = "^6.5.0"
 pytket-quantinuum = "^0.29.0"
 pytket_pecos = "^0.1.15"
 pytest = "^8.0.1"
 pytket-benchmarking = {path = "../../pytket-benchmarking"}
+pytest-cov = "^4.1.0"
+ruff = "^0.2.2"
+mypy = "^1.8.0"
 
 
 [build-system]

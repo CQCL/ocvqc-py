@@ -1,0 +1,83 @@
+name: Tests
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  
+  Run-Tests-Ubuntu:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+
+      - name: Checkout pytket-mbqc
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install pytket-mbqc
+        run: pip install .
+
+      - name: Run Tests
+        run: pytest --cov-report term-missing:skip-covered --cov=pytket-mbqc-py/pytket_mbqc_py/ pytket-mbqc-py/tests/ --durations=10
+
+      - name: Type Check
+        run: mypy pytket-mbqc-py/pytket_mbqc_py/ --warn-unused-ignores
+
+      - name: Lint Check
+        uses: chartboost/ruff-action@v1
+        with:
+          args: check
+
+      - name: Format Check
+        uses: chartboost/ruff-action@v1
+        with:
+          args: format --check
+
+  Run-Tests-Mac:
+    runs-on: macos-13-xlarge
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+
+      - name: Checkout pytket-mbqc
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install pytket-mbqc
+        run: pip install .
+
+      - name: Run Tests
+        run: pytest --cov-report term-missing:skip-covered --cov=pytket-mbqc-py/pytket_mbqc_py/ pytket-mbqc-py/tests/ --durations=10
+
+      - name: Type Check
+        run: mypy pytket-mbqc-py/pytket_mbqc_py/ --warn-unused-ignores
+
+      - name: Lint Check
+        uses: chartboost/ruff-action@v1
+        with:
+          args: check
+
+      - name: Format Check
+        uses: chartboost/ruff-action@v1
+        with:
+          args: format --check

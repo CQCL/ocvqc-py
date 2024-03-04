@@ -2,7 +2,7 @@ from pytket_mbqc_py.qubit_manager import QubitManager
 from typing import List, Tuple, Dict
 from pytket import Qubit
 from pytket_mbqc_py.wasm_file_handler import get_wasm_file_handler
-import networkx as nx
+import networkx as nx  # type:ignore
 
 
 class GraphCircuit(QubitManager):

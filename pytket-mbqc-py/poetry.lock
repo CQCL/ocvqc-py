@@ -867,13 +867,13 @@ test = ["flaky", "ipyparallel", "pre-commit", "pytest (>=7.0)", "pytest-asyncio 
 
 [[package]]
 name = "ipython"
-version = "8.22.1"
+version = "8.22.2"
 description = "IPython: Productive Interactive Computing"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "ipython-8.22.1-py3-none-any.whl", hash = "sha256:869335e8cded62ffb6fac8928e5287a05433d6462e3ebaac25f4216474dd6bc4"},
-    {file = "ipython-8.22.1.tar.gz", hash = "sha256:39c6f9efc079fb19bfb0f17eee903978fe9a290b1b82d68196c641cecb76ea22"},
+    {file = "ipython-8.22.2-py3-none-any.whl", hash = "sha256:3c86f284c8f3d8f2b6c662f885c4889a91df7cd52056fd02b7d8d6195d7f56e9"},
+    {file = "ipython-8.22.2.tar.gz", hash = "sha256:2dcaad9049f9056f1fef63514f176c7d41f930daa78d05b82a176202818f2c14"},
 ]
 
 [package.dependencies]
@@ -1087,13 +1087,13 @@ test = ["click", "pre-commit", "pytest (>=7.0)", "pytest-asyncio (>=0.19.0)", "p
 
 [[package]]
 name = "jupyter-server"
-version = "2.12.5"
+version = "2.13.0"
 description = "The backend—i.e. core services, APIs, and REST endpoints—to Jupyter web applications."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "jupyter_server-2.12.5-py3-none-any.whl", hash = "sha256:184a0f82809a8522777cfb6b760ab6f4b1bb398664c5860a27cec696cb884923"},
-    {file = "jupyter_server-2.12.5.tar.gz", hash = "sha256:0edb626c94baa22809be1323f9770cf1c00a952b17097592e40d03e6a3951689"},
+    {file = "jupyter_server-2.13.0-py3-none-any.whl", hash = "sha256:77b2b49c3831fbbfbdb5048cef4350d12946191f833a24e5f83e5f8f4803e97b"},
+    {file = "jupyter_server-2.13.0.tar.gz", hash = "sha256:c80bfb049ea20053c3d9641c2add4848b38073bf79f1729cea1faed32fc1c78e"},
 ]
 
 [package.dependencies]
@@ -1119,7 +1119,7 @@ websocket-client = "*"
 
 [package.extras]
 docs = ["ipykernel", "jinja2", "jupyter-client", "jupyter-server", "myst-parser", "nbformat", "prometheus-client", "pydata-sphinx-theme", "send2trash", "sphinx-autodoc-typehints", "sphinxcontrib-github-alt", "sphinxcontrib-openapi (>=0.8.0)", "sphinxcontrib-spelling", "sphinxemoji", "tornado", "typing-extensions"]
-test = ["flaky", "ipykernel", "pre-commit", "pytest (>=7.0)", "pytest-console-scripts", "pytest-jupyter[server] (>=0.4)", "pytest-timeout", "requests"]
+test = ["flaky", "ipykernel", "pre-commit", "pytest (>=7.0)", "pytest-console-scripts", "pytest-jupyter[server] (>=0.7)", "pytest-timeout", "requests"]
 
 [[package]]
 name = "jupyter-server-terminals"
@@ -2315,13 +2315,13 @@ testing = ["fields", "hunter", "process-tests", "pytest-xdist", "six", "virtuale
 
 [[package]]
 name = "python-dateutil"
-version = "2.8.2"
+version = "2.9.0.post0"
 description = "Extensions to the standard Python datetime module"
 optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
 files = [
-    {file = "python-dateutil-2.8.2.tar.gz", hash = "sha256:0123cacc1627ae19ddf3c27a5de5bd67ee4586fbdd6440d9748f8abb483d3e86"},
-    {file = "python_dateutil-2.8.2-py2.py3-none-any.whl", hash = "sha256:961d03dc3453ebbc59dbdea9e4e11c5651520a876d0f4db161e8674aae935da9"},
+    {file = "python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3"},
+    {file = "python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427"},
 ]
 
 [package.dependencies]
@@ -3180,17 +3180,17 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "wasmtime"
-version = "18.0.0"
+version = "18.0.2"
 description = "A WebAssembly runtime powered by Wasmtime"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "wasmtime-18.0.0-py3-none-any.whl", hash = "sha256:0bdb0aa5f742d457efe39e1c494a26b8c26718aea90aeae15680ff2bae9ff06e"},
-    {file = "wasmtime-18.0.0-py3-none-macosx_10_13_x86_64.whl", hash = "sha256:543435f24dd951ac9145481a2f61c9416bea149c4879ed174af9b0d1bae1d5e8"},
-    {file = "wasmtime-18.0.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:af6d54470b3dacc3607d554e356b00cc6ebc002793f3db4fdc60a2cbe3af9694"},
-    {file = "wasmtime-18.0.0-py3-none-manylinux1_x86_64.whl", hash = "sha256:b7b3d5a152b572df48c89cdfd14ae53a03eacaeb5476661470640eade98829b1"},
-    {file = "wasmtime-18.0.0-py3-none-manylinux2014_aarch64.whl", hash = "sha256:d22e1ac6804e5175b8c98976e93e62dbd097d87d18ab2b306a50560a336680e3"},
-    {file = "wasmtime-18.0.0-py3-none-win_amd64.whl", hash = "sha256:c76b1d97dae06afadc6e960d5ab9626d88404f779da038347da7cf66cef4e74e"},
+    {file = "wasmtime-18.0.2-py3-none-any.whl", hash = "sha256:49625d389ddd766f5416a1723a76a25473df1dbe6ad706902b7bdbfa549ec3df"},
+    {file = "wasmtime-18.0.2-py3-none-macosx_10_13_x86_64.whl", hash = "sha256:190f182e51f7f0e5340a7ffeb01519eb759748872a2bb227c6b1c055cbee61ce"},
+    {file = "wasmtime-18.0.2-py3-none-macosx_11_0_arm64.whl", hash = "sha256:817c780eb506deaabe31cf23c5e9fe9ab9a1815bc0b805d292ec7502c495e10a"},
+    {file = "wasmtime-18.0.2-py3-none-manylinux1_x86_64.whl", hash = "sha256:30adbf2fb380aae2d7cfd18c6f14d7633d62a8204caf185b7557b2364533268d"},
+    {file = "wasmtime-18.0.2-py3-none-manylinux2014_aarch64.whl", hash = "sha256:c43d281df87af4139735aa62950d855499f58f72778b0e7a79488b3b8807d108"},
+    {file = "wasmtime-18.0.2-py3-none-win_amd64.whl", hash = "sha256:7ccc88a9ee2bb601dbd1dc065a22af7b2f1a85c39b1aa8ebfb8ea57f78157d35"},
 ]
 
 [package.extras]

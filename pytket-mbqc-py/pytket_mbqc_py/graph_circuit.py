@@ -2,16 +2,14 @@ from pytket_mbqc_py.qubit_manager import QubitManager
 from typing import List, Tuple, Dict
 from pytket import Qubit
 from pytket_mbqc_py.wasm_file_handler import get_wasm_file_handler
-import networkx as nx
+import networkx as nx  # type:ignore
 
 
 class GraphCircuit(QubitManager):
-    
     def __init__(
         self,
-        n_qubits_total:int,
+        n_qubits_total: int,
     ) -> None:
-        
         super().__init__(n_qubits=n_qubits_total)
 
         self.wfh = get_wasm_file_handler()
@@ -29,16 +27,21 @@ class GraphCircuit(QubitManager):
         self.vertex_measured: List[bool] = []
 
         self.mbqc_begun = False
-    
+
     @property
     def output_qubits(self) -> Dict[int, Qubit]:
-        output_vertices = [vertex for vertex, measured in enumerate(self.vertex_measured) if not measured]
+        output_vertices = [
+            vertex
+            for vertex, measured in enumerate(self.vertex_measured)
+            if not measured
+        ]
         return {vertex: self.vertex_qubit[vertex] for vertex in output_vertices}
 
     def correct_outputs(self) -> None:
-        
         unmeasured_graph_verices = [
-            vertex for vertex in self.vertex_flow.keys() if not self.vertex_measured[vertex]
+            vertex
+            for vertex in self.vertex_flow.keys()
+            if not self.vertex_measured[vertex]
         ]
         if len(unmeasured_graph_verices) > 0:
             raise Exception(
@@ -49,11 +52,10 @@ class GraphCircuit(QubitManager):
         for vertex in self.output_qubits.keys():
             self._apply_correction(vertex=vertex)
 
-    def _vertex_neighbour(self, vertex:int) -> List[int]:
+    def _vertex_neighbour(self, vertex: int) -> List[int]:
         return self.graph.neighbors(n=vertex)
 
-    def _add_vertex(self, qubit:Qubit) -> int:
-
+    def _add_vertex(self, qubit: Qubit) -> int:
         self.vertex_qubit.append(qubit)
         self.vertex_measured.append(False)
 
@@ -64,7 +66,6 @@ class GraphCircuit(QubitManager):
         return index
 
     def add_input_vertex(self) -> Tuple[Qubit, int]:
-
         if len(self.vertex_qubit) == 100:
             raise Exception("The current maximum number of vertices is 100.")
 
@@ -74,13 +75,11 @@ class GraphCircuit(QubitManager):
         return (qubit, index)
 
     def add_output_vertex(self) -> int:
-
         index = self.add_graph_vertex()
         self.output_vertices.append(index)
         return index
 
     def add_graph_vertex(self) -> int:
-
         if len(self.vertex_qubit) == 100:
             raise Exception("The current maximum number of vertices is 100.")
 
@@ -89,20 +88,15 @@ class GraphCircuit(QubitManager):
 
         return index
 
-    def add_edge(self, vertex_one:int, vertex_two:int) -> None:
-        
+    def add_edge(self, vertex_one: int, vertex_two: int) -> None:
         if vertex_one > vertex_two:
             raise Exception("Cannot add edge into the past.")
 
         if vertex_one >= len(self.vertex_qubit):
-            raise Exception(
-                f"There is no vertex with the index {vertex_one}."
-            )
+            raise Exception(f"There is no vertex with the index {vertex_one}.")
 
         if vertex_two >= len(self.vertex_qubit):
-            raise Exception(
-                f"There is no vertex with the index {vertex_two}."
-            )
+            raise Exception(f"There is no vertex with the index {vertex_two}.")
 
         if self.vertex_measured[vertex_one] or self.vertex_measured[vertex_two]:
             raise Exception("Cannot add edge after measure.")
@@ -110,7 +104,8 @@ class GraphCircuit(QubitManager):
         # vertex_two is a new neighbour of vertex_one. As such none of the vertices of which
         # vertex_one is the flow can have been measued.
         measured_inverse_flow = [
-            flow_inverse for flow_inverse in self.vertex_flow_inverse[vertex_one]
+            flow_inverse
+            for flow_inverse in self.vertex_flow_inverse[vertex_one]
             if self.vertex_measured[flow_inverse]
         ]
         if len(measured_inverse_flow) > 0:
@@ -124,8 +119,9 @@ class GraphCircuit(QubitManager):
         # This is only not the case if vertex_one is an output vertex, in which case it has no flow.
         # If vertex_two is to be the flow of vertex_one than we must check that neighbours of
         # vertex_two are measured after vertex_one.
-        if (vertex_one not in self.vertex_flow.keys()) and (vertex_one not in self.output_vertices):
-
+        if (vertex_one not in self.vertex_flow.keys()) and (
+            vertex_one not in self.output_vertices
+        ):
             vertex_neighbours = self._vertex_neighbour(vertex=vertex_two)
             if any(vertex < vertex_one for vertex in vertex_neighbours):
                 raise Exception(
@@ -136,7 +132,10 @@ class GraphCircuit(QubitManager):
 
         # vertex_one is a neighbour of vertex_two. As such vertex_one must be measured after
         # any vertices of which vertex_two is its flow.
-        if any(flow_inverse > vertex_one for flow_inverse in self.vertex_flow_inverse[vertex_two]):
+        if any(
+            flow_inverse > vertex_one
+            for flow_inverse in self.vertex_flow_inverse[vertex_two]
+        ):
             raise Exception(
                 "This does not define a valid flow. "
                 f"In partcular {vertex_two} is the flow of {self.vertex_flow_inverse[vertex_two]}, "
@@ -146,15 +145,14 @@ class GraphCircuit(QubitManager):
         self.mbqc_begun = True
 
         # If this is the first future of vertex_one then it is taken to be its flow.
-        if vertex_one not in self.vertex_flow.keys() and (vertex_one not in self.output_vertices):
+        if vertex_one not in self.vertex_flow.keys() and (
+            vertex_one not in self.output_vertices
+        ):
             self.vertex_flow[vertex_one] = vertex_two
             self.vertex_flow_inverse[vertex_two].append(vertex_one)
 
-        self.CZ(
-            self.vertex_qubit[vertex_one],
-            self.vertex_qubit[vertex_two]
-        )
-                
+        self.CZ(self.vertex_qubit[vertex_one], self.vertex_qubit[vertex_two])
+
         assert vertex_one in self.graph.nodes
         assert vertex_two in self.graph.nodes
         self.graph.add_edge(
@@ -163,17 +161,31 @@ class GraphCircuit(QubitManager):
         )
 
     def _apply_correction(self, vertex: int) -> None:
-
         self.add_c_setreg(vertex, self.index_reg)
-        
-        self.add_wasm_to_reg("get_x_correction", self.wfh, [self.index_reg], [self.qubit_x_corr_reg[self.vertex_qubit[vertex]]])
-        self.X(self.vertex_qubit[vertex], condition=self.qubit_x_corr_reg[self.vertex_qubit[vertex]][0])
-        
-        self.add_wasm_to_reg("get_z_correction", self.wfh, [self.index_reg], [self.qubit_z_corr_reg[self.vertex_qubit[vertex]]])
-        self.Z(self.vertex_qubit[vertex], condition=self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0])
+
+        self.add_wasm_to_reg(
+            "get_x_correction",
+            self.wfh,
+            [self.index_reg],
+            [self.qubit_x_corr_reg[self.vertex_qubit[vertex]]],
+        )
+        self.X(
+            self.vertex_qubit[vertex],
+            condition=self.qubit_x_corr_reg[self.vertex_qubit[vertex]][0],
+        )
+
+        self.add_wasm_to_reg(
+            "get_z_correction",
+            self.wfh,
+            [self.index_reg],
+            [self.qubit_z_corr_reg[self.vertex_qubit[vertex]]],
+        )
+        self.Z(
+            self.vertex_qubit[vertex],
+            condition=self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0],
+        )
 
     def corrected_measure(self, vertex: int, t_multiple: int = 0) -> None:
-
         if vertex in self.output_vertices:
             raise Exception("This is an output qubit and cannot be measured.")
 
@@ -205,12 +217,16 @@ class GraphCircuit(QubitManager):
         # Check that the flow of the vertex being measued has
         # not been measured.
         assert not self.vertex_measured[self.vertex_flow[vertex]]
-            
+
         self.add_c_setreg(value=self.vertex_flow[vertex], arg=self.index_reg)
-        self.add_wasm_to_reg("update_x_correction", self.wfh, [self.qubit_meas_reg[self.vertex_qubit[vertex]], self.index_reg], [])
+        self.add_wasm_to_reg(
+            "update_x_correction",
+            self.wfh,
+            [self.qubit_meas_reg[self.vertex_qubit[vertex]], self.index_reg],
+            [],
+        )
 
         for neigibour in self._vertex_neighbour(self.vertex_flow[vertex]):
-            
             if neigibour == vertex:
                 continue
 
@@ -218,5 +234,9 @@ class GraphCircuit(QubitManager):
             assert not self.vertex_measured[neigibour]
 
             self.add_c_setreg(value=neigibour, arg=self.index_reg)
-            self.add_wasm_to_reg("update_z_correction", self.wfh, [self.qubit_meas_reg[self.vertex_qubit[vertex]], self.index_reg], [])
-        
+            self.add_wasm_to_reg(
+                "update_z_correction",
+                self.wfh,
+                [self.qubit_meas_reg[self.vertex_qubit[vertex]], self.index_reg],
+                [],
+            )

@@ -16,7 +16,9 @@ ruff = "^0.2.2"
 mypy = "^1.8.0"
 importlib-resources = "^6.1.2"
 
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]

@@ -1,0 +1,2 @@
+[console_scripts]
+phirc = pytket.phir.cli:main

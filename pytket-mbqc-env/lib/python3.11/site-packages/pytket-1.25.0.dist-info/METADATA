@@ -1,0 +1,89 @@
+Metadata-Version: 2.1
+Name: pytket
+Version: 1.25.0
+Summary: Python module for interfacing with the CQC tket library of quantum software
+Author: TKET development team
+Author-email: tket-support@cambridgequantum.com
+License: Apache 2
+Project-URL: Documentation, https://cqcl.github.io/tket/pytket/api/index.html
+Project-URL: Source, https://github.com/CQCL/tket
+Project-URL: Tracker, https://github.com/CQCL/tket/issues
+Classifier: Environment :: Console
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: sympy ~=1.6
+Requires-Dist: numpy <2.0,>=1.21.4
+Requires-Dist: lark-parser ~=0.7
+Requires-Dist: scipy <2.0,>=1.7.2
+Requires-Dist: networkx >=2.8.8
+Requires-Dist: graphviz ~=0.14
+Requires-Dist: jinja2 ~=3.0
+Requires-Dist: types-pkg-resources
+Requires-Dist: typing-extensions ~=4.2
+Requires-Dist: qwasm ~=1.0
+Provides-Extra: zx
+Requires-Dist: quimb ~=1.5 ; extra == 'zx'
+Requires-Dist: autoray >=0.6.1 ; extra == 'zx'
+
+Pytket is a python module for interfacing with TKET, an optimising compiler for quantum circuits developed by [Quantinuum](https://www.quantinuum.com/). In addition to pytket there are several extension modules for accessing a range of quantum hardware and classical simulators. The extension modules also provide integration with several widely used quantum software tools.
+
+The source code for the TKET compiler can be found in [this github repository](https://github.com/CQCL/tket).
+
+## Installation
+
+Installation is supported for Linux, MacOS and Windows. Installation requires python 3.10, 3.11 or 3.12.
+
+To install run the pip command: 
+
+`` pip install pytket``
+
+See [Installation troubleshooting](https://cqcl.github.io/tket/pytket/api/install.html) for help with installation.
+
+To install the pytket extension modules add a hyphen and the extension name to the command:
+
+`` pip install pytket-quantinuum ``
+
+For a list of pytket extensions see this page: https://tket.quantinuum.com/api-docs/extensions.
+
+_Warning._ There is a [known issue](https://github.com/CQCL/tket/issues/926)
+with installing pytket in a conda environment on MacOS: you may not be able to
+install versions more recent then 1.11.0. The only known remedy is to use an
+official Python distribution instead.
+
+## Documentation and Examples
+
+API reference: https://cqcl.github.io/tket/pytket/api/
+
+To get started using pytket see the [user manual](https://tket.quantinuum.com/user-manual/).
+
+For worked examples using TKET see our [notebook examples](https://tket.quantinuum.com/examples).
+
+## Support and Discussion
+
+For bugs and feature requests we recommend creating an issue on the [github repository](https://github.com/CQCL/tket).
+
+User support: tket-support@cambridgequantum.com
+
+For discussion, join the public slack channel [here](https://join.slack.com/t/tketusers/shared_invite/zt-18qmsamj9-UqQFVdkRzxnXCcKtcarLRA).
+
+Mailing list: join [here](https://list.cambridgequantum.com/cgi-bin/mailman/listinfo/tket-users).
+
+## Citation
+
+If you wish to cite TKET in any academic publications, we generally recommend citing our [software overview](https://arxiv.org/abs/2003.10611) paper for most cases.
+
+If your work is on the topic of specific compilation tasks, it may be more appropriate to cite one of our other papers:
+
+- "On the qubit routing problem" for qubit placement (a.k.a. allocation) and routing (a.k.a. swap network insertion, connectivity solving). https://arxiv.org/abs/1902.08091 .
+- "Phase Gadget Synthesis for Shallow Circuits" for representing exponentiated Pauli operators in the ZX calculus and their circuit decompositions. https://arxiv.org/abs/1906.01734 .
+- "A Generic Compilation Strategy for the Unitary Coupled Cluster Ansatz" for sequencing of terms in Trotterisation and Pauli diagonalisation. https://arxiv.org/abs/2007.10515 .

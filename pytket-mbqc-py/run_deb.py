@@ -1,3 +1,4 @@
+
 from pytket_mbqc_py import get_wasm_file_handler
 from pytket.extensions.quantinuum import QuantinuumBackend, QuantinuumAPIOffline
 from pytket_mbqc_py import GraphCircuit
@@ -5,7 +6,11 @@ from pytket.unit_id import BitRegister
 import pytest
 
 
+# When using Homebrew, since we have an issue on MacOs
+brew install python@3.12
+brew link python@3.12
 
+pip install pyzmq
 
 
 def test_plus_state():

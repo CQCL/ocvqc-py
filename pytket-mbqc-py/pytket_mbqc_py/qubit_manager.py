@@ -60,6 +60,14 @@ class QubitManager(Circuit):
         self.H(qubit=qubit)
 
         return qubit
+    
+    def get_plus_theta_state(self,angle) -> Qubit:
+        qubit = self.get_qubit()
+
+        self.Reset(qubit=qubit)
+        self.H(qubit=qubit).Rz(angle,qubit=qubit)
+
+        return qubit
 
     def return_qubit(self, qubit: Qubit) -> None:
         self.qubit_list.insert(0, qubit)

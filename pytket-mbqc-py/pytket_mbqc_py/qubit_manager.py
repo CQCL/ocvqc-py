@@ -1,6 +1,7 @@
 from pytket import Circuit
 from pytket.unit_id import Qubit, BitRegister
 import math
+import random
 
 
 class QubitManager(Circuit):
@@ -62,6 +63,19 @@ class QubitManager(Circuit):
                 self.Rz(angle=angle, qubit=qubit)
         
             return qubit
+        
+    def get_dummy_state(self, ) -> Qubit:
+        qubit = self.get_qubit()
+        random_bit = random.randint(0, 1)
+        self.Reset(qubit=qubit)
+        if random_bit == 1:
+            self.X(qubit=qubit)
+            return qubit
+        elif random_bit == 0:
+            return qubit
+        else:
+            raise Exception("Random bit is not 0 or 1")
+    
 
 
     def return_qubit(self, qubit: Qubit) -> None:

@@ -63,6 +63,7 @@ class QubitManager(Circuit):
         
             return qubit
 
+
     def return_qubit(self, qubit: Qubit) -> None:
         self.qubit_list.insert(0, qubit)
 

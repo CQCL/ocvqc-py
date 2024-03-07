@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: qwasm
+Version: 1.0.1
+Summary: WebAssembly decoder & disassembler
+Home-page: https://github.com/CQCL/qwasm
+Author: Melf Johannsen
+Author-email: melf.johannsen@quantinuum.com
+License: MIT
+Keywords: wasm,disassembler,decoder
+License-File: LICENSE
+Requires-Dist: setuptools
+

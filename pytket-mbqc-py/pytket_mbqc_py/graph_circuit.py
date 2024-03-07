@@ -79,11 +79,18 @@ class GraphCircuit(QubitManager):
         self.output_vertices.append(index)
         return index
 
-    def add_graph_vertex(self) -> int:
+    def add_graph_vertex(self,initial_state=None) -> int:
         if len(self.vertex_qubit) == 100:
             raise Exception("The current maximum number of vertices is 100.")
-
-        qubit = super().get_plus_state()
+        if initial_state is None:
+            qubit = super().get_plus_state()
+        elif isinstance(initial_state, float):
+            qubit = super().get_plus_state(initial_state)            
+        elif isinstance(initial_state, int):
+            qubit = super().get_dummy_state(initial_state)
+        else:
+            raise Exception(f"Initial state must be a None, float or int, not a {type(initial_state)}.")
+        
         index = self._add_vertex(qubit=qubit)
 
         return index

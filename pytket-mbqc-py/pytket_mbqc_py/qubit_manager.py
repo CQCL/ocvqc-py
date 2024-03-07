@@ -65,7 +65,8 @@ class QubitManager(Circuit):
         qubit = self.get_qubit()
 
         self.Reset(qubit=qubit)
-        self.H(qubit=qubit).Rz(angle,qubit=qubit)
+        self.H(qubit=qubit)
+        self.Rz(angle=angle,qubit=qubit)
 
         return qubit
 

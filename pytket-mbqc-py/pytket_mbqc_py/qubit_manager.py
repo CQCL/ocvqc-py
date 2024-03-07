@@ -1,7 +1,7 @@
 from pytket import Circuit
 from pytket.unit_id import Qubit, BitRegister
 import math
-import random
+
 
 
 class QubitManager(Circuit):
@@ -76,7 +76,6 @@ class QubitManager(Circuit):
         else:
             raise Exception("Random bit is not 0 or 1")
     
-
 
     def return_qubit(self, qubit: Qubit) -> None:
         self.qubit_list.insert(0, qubit)

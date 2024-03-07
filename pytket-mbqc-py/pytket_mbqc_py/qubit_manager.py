@@ -64,14 +64,14 @@ class QubitManager(Circuit):
         
             return qubit
         
-    def get_dummy_state(self, ) -> Qubit:
+    def get_dummy_state(self,initial_state) -> Qubit:
         qubit = self.get_qubit()
-        random_bit = random.randint(0, 1)
+    
         self.Reset(qubit=qubit)
-        if random_bit == 1:
+        if initial_state == 1:
             self.X(qubit=qubit)
             return qubit
-        elif random_bit == 0:
+        elif initial_state == 0:
             return qubit
         else:
             raise Exception("Random bit is not 0 or 1")

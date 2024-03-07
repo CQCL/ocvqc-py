@@ -54,14 +54,15 @@ class QubitManager(Circuit):
         return qubit
 
     def get_plus_state(self, angle=None) -> Qubit:
-        qubit = self.get_qubit()
-    
-        self.Reset(qubit=qubit)
-        self.H(qubit=qubit)
-        if angle is not None:
-            self.Rz(angle=angle, qubit=qubit)
-    
-        return qubit
+            qubit = self.get_qubit()
+        
+            self.Reset(qubit=qubit)
+            self.H(qubit=qubit)
+            if angle is not None:
+                self.Rz(angle=angle, qubit=qubit)
+        
+            return qubit
+
 
     def return_qubit(self, qubit: Qubit) -> None:
         self.qubit_list.insert(0, qubit)

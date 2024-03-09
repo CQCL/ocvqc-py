@@ -92,7 +92,7 @@ class GraphCircuit(QubitManager):
             raise Exception(f"Initial state must be a None, float or int, not a {type(initial_state)}.")
         
         index = self._add_vertex(qubit=qubit)
-
+        # Call out to update correction
         return index
 
     def add_edge(self, vertex_one: int, vertex_two: int) -> None:

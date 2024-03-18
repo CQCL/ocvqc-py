@@ -17,6 +17,10 @@ class QubitManager(Circuit):
             qubit: BitRegister(name=f"meas_{i}", size=1)
             for i, qubit in enumerate(self.qubit_list)
         }
+        self.qubit_initial_angle = {
+            qubit: BitRegister(name=f"qubit_initial_angle_{i}", size=1)
+            for i, qubit in enumerate(self.qubit_list)            
+        }
         self.qubit_x_corr_reg = {
             qubit: BitRegister(name=f"x_corr_{i}", size=1)
             for i, qubit in enumerate(self.qubit_list)
@@ -28,12 +32,14 @@ class QubitManager(Circuit):
 
         super().__init__()
 
-        for meas_reg, x_corr_reg, z_corr_reg in zip(
+        for meas_reg, qubit_initial_angle,x_corr_reg, z_corr_reg in zip(
             self.qubit_meas_reg.values(),
+            self.qubit_initial_angle.values(),
             self.qubit_x_corr_reg.values(),
             self.qubit_z_corr_reg.values(),
         ):
             self.add_c_register(register=meas_reg)
+            self.add_c_register(register=qubit_initial_angle)
             self.add_c_register(register=x_corr_reg)
             self.add_c_register(register=z_corr_reg)
 
@@ -49,6 +55,7 @@ class QubitManager(Circuit):
             self.add_qubit(id=qubit)
             self.qubit_initialised[qubit] = True
 
+        self.add_c_setreg(0, self.qubit_initial_angle[qubit])
         self.add_c_setreg(0, self.qubit_x_corr_reg[qubit])
         self.add_c_setreg(0, self.qubit_z_corr_reg[qubit])
         self.add_c_setreg(0, self.qubit_meas_reg[qubit])

@@ -64,6 +64,8 @@ class GraphCircuit(QubitManager):
         self.vertex_flow_inverse[index] = []
 
         return index
+    
+
 
     def add_input_vertex(self) -> Tuple[Qubit, int]:
         if len(self.vertex_qubit) == 100:
@@ -78,20 +80,33 @@ class GraphCircuit(QubitManager):
         index = self.add_graph_vertex()
         self.output_vertices.append(index)
         return index
+    
+    def get_plus_state(self,t_multiple: int = 0) -> Qubit:
+        qubit = super().get_qubit()
+        index = self._add_vertex(qubit=qubit)
 
-    def add_graph_vertex(self,initial_state=None) -> int:
+    
+        self.Reset(qubit=qubit)
+        self.H(qubit=qubit)
+        [self.T(qubit=qubit) for _ in range(t_multiple)]
+    
+        self.add_c_setreg(value=index, arg=self.index_reg)
+        self.add_wasm_to_reg(
+            "update_z_correction",
+            self.wfh,
+            [self.qubit_init_t_mult_reg[self.vertex_qubit[index]], t_multiple],
+            [],)
+        return qubit
+
+    def add_graph_vertex(self,t_multiple: int = 0) -> int:
         if len(self.vertex_qubit) == 100:
             raise Exception("The current maximum number of vertices is 100.")
-        if initial_state is None:
-            qubit = super().get_plus_state()
-        elif isinstance(initial_state, float):
-            qubit = super().get_plus_state(initial_state)            
-        elif isinstance(initial_state, int):
-            qubit = super().get_dummy_state(initial_state)
-        else:
-            raise Exception(f"Initial state must be a None, float or int, not a {type(initial_state)}.")
-        
+ 
+        qubit = self.get_plus_state(t_multiple)
+  
         index = self._add_vertex(qubit=qubit)
+        
+
         # Call out to update correction
         return index
 
@@ -199,7 +214,7 @@ class GraphCircuit(QubitManager):
         if not all(self.vertex_measured[:vertex]):
             print(self.vertex_measured[:vertex])
             raise Exception(
-                "Measuremnt order has not been respected. "
+                "Measurement order has not been respected. "
                 + f"Vertices {[i for i, measured in enumerate(self.vertex_measured[:vertex]) if not measured]} "
                 + f"are in the past of {vertex} but have not been measured."
             )

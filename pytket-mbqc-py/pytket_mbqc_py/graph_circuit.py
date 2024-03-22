@@ -83,7 +83,7 @@ class GraphCircuit(QubitManager):
     
     def get_plus_state(self,z_multiple: int = 0) -> Qubit:
         qubit = super().get_qubit()
-        index = self._add_vertex(qubit=qubit)
+        index = len(self.vertex_qubit) - 1
 
     
         self.Reset(qubit=qubit)
@@ -174,7 +174,7 @@ class GraphCircuit(QubitManager):
         ):
             self.vertex_flow[vertex_one] = vertex_two
             self.vertex_flow_inverse[vertex_two].append(vertex_one)
-
+        print(f"Qubit index 1: {self.vertex_qubit[vertex_one]} and 2 is {self.vertex_qubit[vertex_two]}")
         self.CZ(self.vertex_qubit[vertex_one], self.vertex_qubit[vertex_two])
 
         assert vertex_one in self.graph.nodes

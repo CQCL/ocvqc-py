@@ -64,6 +64,8 @@ class GraphCircuit(QubitManager):
         self.vertex_flow_inverse[index] = []
 
         return index
+    
+
 
     def add_input_vertex(self) -> Tuple[Qubit, int]:
         if len(self.vertex_qubit) == 100:
@@ -78,14 +80,36 @@ class GraphCircuit(QubitManager):
         index = self.add_graph_vertex()
         self.output_vertices.append(index)
         return index
+    
+    def get_plus_state(self,z_multiple: int = 0) -> Qubit:
+        qubit = super().get_qubit()
+        index = len(self.vertex_qubit) - 1
 
-    def add_graph_vertex(self) -> int:
+    
+        self.Reset(qubit=qubit)
+        self.H(qubit=qubit)
+        [self.Z(qubit=qubit) for _ in range(z_multiple)]
+    
+        self.add_c_setreg(value=index, arg=self.index_reg)
+        self.add_c_setreg(value=z_multiple, arg=self.qubit_init_z_mult_reg[self.vertex_qubit[index]])
+        self.add_wasm_to_reg(
+            "update_z_correction",
+            self.wfh,
+            [self.qubit_init_z_mult_reg[self.vertex_qubit[index]], self.index_reg],
+            [],
+        )
+        return qubit
+
+    def add_graph_vertex(self,z_multiple: int = 0) -> int:
         if len(self.vertex_qubit) == 100:
             raise Exception("The current maximum number of vertices is 100.")
-
-        qubit = super().get_plus_state()
+ 
+        qubit = self.get_plus_state(z_multiple)
+  
         index = self._add_vertex(qubit=qubit)
+        
 
+        # Call out to update correction
         return index
 
     def add_edge(self, vertex_one: int, vertex_two: int) -> None:
@@ -150,7 +174,7 @@ class GraphCircuit(QubitManager):
         ):
             self.vertex_flow[vertex_one] = vertex_two
             self.vertex_flow_inverse[vertex_two].append(vertex_one)
-
+        print(f"Qubit index 1: {self.vertex_qubit[vertex_one]} and 2 is {self.vertex_qubit[vertex_two]}")
         self.CZ(self.vertex_qubit[vertex_one], self.vertex_qubit[vertex_two])
 
         assert vertex_one in self.graph.nodes
@@ -192,7 +216,7 @@ class GraphCircuit(QubitManager):
         if not all(self.vertex_measured[:vertex]):
             print(self.vertex_measured[:vertex])
             raise Exception(
-                "Measuremnt order has not been respected. "
+                "Measurement order has not been respected. "
                 + f"Vertices {[i for i, measured in enumerate(self.vertex_measured[:vertex]) if not measured]} "
                 + f"are in the past of {vertex} but have not been measured."
             )

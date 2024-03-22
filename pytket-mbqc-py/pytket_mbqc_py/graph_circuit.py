@@ -81,21 +81,22 @@ class GraphCircuit(QubitManager):
         self.output_vertices.append(index)
         return index
     
-    def get_plus_state(self,t_multiple: int = 0) -> Qubit:
+    def get_plus_state(self,z_multiple: int = 0) -> Qubit:
         qubit = super().get_qubit()
         index = self._add_vertex(qubit=qubit)
 
     
         self.Reset(qubit=qubit)
         self.H(qubit=qubit)
-        [self.T(qubit=qubit) for _ in range(t_multiple)]
+        [self.Z(qubit=qubit) for _ in range(z_multiple)]
     
         self.add_c_setreg(value=index, arg=self.index_reg)
         self.add_wasm_to_reg(
             "update_z_correction",
             self.wfh,
-            [self.qubit_init_t_mult_reg[self.vertex_qubit[index]], t_multiple],
-            [],)
+            [self.qubit_init_t_mult_reg[self.vertex_qubit[index]], z_multiple],
+            [],
+        )
         return qubit
 
     def add_graph_vertex(self,t_multiple: int = 0) -> int:

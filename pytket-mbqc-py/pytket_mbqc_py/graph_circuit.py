@@ -91,6 +91,7 @@ class GraphCircuit(QubitManager):
         [self.Z(qubit=qubit) for _ in range(z_multiple)]
     
         self.add_c_setreg(value=index, arg=self.index_reg)
+        self.add_c_setreg(value=z_multiple, arg=self.qubit_init_t_mult_reg[self.vertex_qubit[index]])
         self.add_wasm_to_reg(
             "update_z_correction",
             self.wfh,

@@ -94,16 +94,16 @@ class GraphCircuit(QubitManager):
         self.add_wasm_to_reg(
             "update_z_correction",
             self.wfh,
-            [self.qubit_init_t_mult_reg[self.vertex_qubit[index]], z_multiple],
+            [self.qubit_init_t_mult_reg[self.vertex_qubit[index]], self.index_reg],
             [],
         )
         return qubit
 
-    def add_graph_vertex(self,t_multiple: int = 0) -> int:
+    def add_graph_vertex(self,z_multiple: int = 0) -> int:
         if len(self.vertex_qubit) == 100:
             raise Exception("The current maximum number of vertices is 100.")
  
-        qubit = self.get_plus_state(t_multiple)
+        qubit = self.get_plus_state(z_multiple)
   
         index = self._add_vertex(qubit=qubit)
         

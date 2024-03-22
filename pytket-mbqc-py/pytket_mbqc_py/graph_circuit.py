@@ -174,7 +174,6 @@ class GraphCircuit(QubitManager):
         ):
             self.vertex_flow[vertex_one] = vertex_two
             self.vertex_flow_inverse[vertex_two].append(vertex_one)
-        print(f"Qubit index 1: {self.vertex_qubit[vertex_one]} and 2 is {self.vertex_qubit[vertex_two]}")
         self.CZ(self.vertex_qubit[vertex_one], self.vertex_qubit[vertex_two])
 
         assert vertex_one in self.graph.nodes

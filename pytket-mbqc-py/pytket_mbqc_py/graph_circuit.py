@@ -8,14 +8,14 @@ import networkx as nx  # type:ignore
 class GraphCircuit(QubitManager):
     def __init__(
         self,
-        n_qubits_total: int,
+        n_physical_qubits: int,
     ) -> None:
-        super().__init__(n_qubits=n_qubits_total)
+        super().__init__(n_physical_qubits=n_physical_qubits)
 
         self.wfh = get_wasm_file_handler()
         self.add_wasm_to_reg("init_corrections", self.wfh, [], [])
 
-        self.graph = nx.Graph()
+        self.entanglement_graph = nx.Graph()
 
         self.vertex_flow: Dict[int, int] = dict()
         self.vertex_flow_inverse: Dict[int, List[int]] = dict()
@@ -26,41 +26,28 @@ class GraphCircuit(QubitManager):
 
         self.vertex_measured: List[bool] = []
 
-        self.mbqc_begun = False
-
-    @property
-    def output_qubits(self) -> Dict[int, Qubit]:
-        output_vertices = [
-            vertex
-            for vertex, measured in enumerate(self.vertex_measured)
-            if not measured
-        ]
-        return {vertex: self.vertex_qubit[vertex] for vertex in output_vertices}
-
     def correct_outputs(self) -> None:
-        unmeasured_graph_verices = [
+        unmeasured_graph_vertices = [
             vertex
             for vertex in self.vertex_flow.keys()
             if not self.vertex_measured[vertex]
         ]
-        if len(unmeasured_graph_verices) > 0:
+        if len(unmeasured_graph_vertices) > 0:
             raise Exception(
                 "Only output vertices can be unmeasured. "
-                + f"In particular {unmeasured_graph_verices} must be measured."
+                + f"In particular {unmeasured_graph_vertices} must be measured."
             )
 
-        for vertex in self.output_qubits.keys():
-            self._apply_correction(vertex=vertex)
-
-    def _vertex_neighbour(self, vertex: int) -> List[int]:
-        return self.graph.neighbors(n=vertex)
+        for vertex, measured in enumerate(self.vertex_measured):
+            if not measured:
+                self._apply_correction(vertex=vertex)
 
     def _add_vertex(self, qubit: Qubit) -> int:
         self.vertex_qubit.append(qubit)
         self.vertex_measured.append(False)
 
         index = len(self.vertex_qubit) - 1
-        self.graph.add_node(node_for_adding=index)
+        self.entanglement_graph.add_node(node_for_adding=index)
         self.vertex_flow_inverse[index] = []
 
         return index
@@ -83,7 +70,8 @@ class GraphCircuit(QubitManager):
         if len(self.vertex_qubit) == 100:
             raise Exception("The current maximum number of vertices is 100.")
 
-        qubit = super().get_plus_state()
+        qubit = self.get_qubit()
+        self.H(qubit)
         index = self._add_vertex(qubit=qubit)
 
         return index
@@ -102,7 +90,7 @@ class GraphCircuit(QubitManager):
             raise Exception("Cannot add edge after measure.")
 
         # vertex_two is a new neighbour of vertex_one. As such none of the vertices of which
-        # vertex_one is the flow can have been measued.
+        # vertex_one is the flow can have been measured.
         measured_inverse_flow = [
             flow_inverse
             for flow_inverse in self.vertex_flow_inverse[vertex_one]
@@ -122,7 +110,8 @@ class GraphCircuit(QubitManager):
         if (vertex_one not in self.vertex_flow.keys()) and (
             vertex_one not in self.output_vertices
         ):
-            vertex_neighbours = self._vertex_neighbour(vertex=vertex_two)
+            # vertex_neighbours = self._vertex_neighbour(vertex=vertex_two)
+            vertex_neighbours = self.entanglement_graph.neighbors(n=vertex_two)
             if any(vertex < vertex_one for vertex in vertex_neighbours):
                 raise Exception(
                     "This circuit does not have a valid flow. "
@@ -138,11 +127,9 @@ class GraphCircuit(QubitManager):
         ):
             raise Exception(
                 "This does not define a valid flow. "
-                f"In partcular {vertex_two} is the flow of {self.vertex_flow_inverse[vertex_two]}, "
+                f"In particular {vertex_two} is the flow of {self.vertex_flow_inverse[vertex_two]}, "
                 f"some of which are measured before {vertex_one}."
             )
-
-        self.mbqc_begun = True
 
         # If this is the first future of vertex_one then it is taken to be its flow.
         if vertex_one not in self.vertex_flow.keys() and (
@@ -153,9 +140,9 @@ class GraphCircuit(QubitManager):
 
         self.CZ(self.vertex_qubit[vertex_one], self.vertex_qubit[vertex_two])
 
-        assert vertex_one in self.graph.nodes
-        assert vertex_two in self.graph.nodes
-        self.graph.add_edge(
+        assert vertex_one in self.entanglement_graph.nodes
+        assert vertex_two in self.entanglement_graph.nodes
+        self.entanglement_graph.add_edge(
             u_of_edge=vertex_one,
             v_of_edge=vertex_two,
         )
@@ -192,12 +179,10 @@ class GraphCircuit(QubitManager):
         if not all(self.vertex_measured[:vertex]):
             print(self.vertex_measured[:vertex])
             raise Exception(
-                "Measuremnt order has not been respected. "
+                "Measurement order has not been respected. "
                 + f"Vertices {[i for i, measured in enumerate(self.vertex_measured[:vertex]) if not measured]} "
                 + f"are in the past of {vertex} but have not been measured."
             )
-
-        self.mbqc_begun = True
 
         self._apply_correction(vertex=vertex)
 
@@ -214,7 +199,7 @@ class GraphCircuit(QubitManager):
         self.managed_measure(qubit=self.vertex_qubit[vertex])
         self.vertex_measured[vertex] = True
 
-        # Check that the flow of the vertex being measued has
+        # Check that the flow of the vertex being measured has
         # not been measured.
         assert not self.vertex_measured[self.vertex_flow[vertex]]
 
@@ -226,14 +211,15 @@ class GraphCircuit(QubitManager):
             [],
         )
 
-        for neigibour in self._vertex_neighbour(self.vertex_flow[vertex]):
-            if neigibour == vertex:
+        # for neighbour in self._vertex_neighbour(self.vertex_flow[vertex]):
+        for neighbour in self.entanglement_graph.neighbors(n=self.vertex_flow[vertex]):
+            if neighbour == vertex:
                 continue
 
-            # Check that the vertex being updated has not been measued
-            assert not self.vertex_measured[neigibour]
+            # Check that the vertex being updated has not been measured
+            assert not self.vertex_measured[neighbour]
 
-            self.add_c_setreg(value=neigibour, arg=self.index_reg)
+            self.add_c_setreg(value=neighbour, arg=self.index_reg)
             self.add_wasm_to_reg(
                 "update_z_correction",
                 self.wfh,

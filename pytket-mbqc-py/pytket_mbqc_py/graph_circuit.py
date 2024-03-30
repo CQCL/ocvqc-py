@@ -78,13 +78,23 @@ class GraphCircuit(QubitManager):
 
     def add_edge(self, vertex_one: int, vertex_two: int) -> None:
         if vertex_one > vertex_two:
-            raise Exception("Cannot add edge into the past.")
+            raise Exception(
+                f"{vertex_one} is greater than {vertex_two}. "
+                + "Cannot add edge into the past."
+            )
 
-        if vertex_one >= len(self.vertex_qubit):
-            raise Exception(f"There is no vertex with the index {vertex_one}.")
+        # if vertex_one >= len(self.vertex_qubit):
+        if vertex_one not in self.entanglement_graph.nodes:
+            raise Exception(
+                f"There is no vertex with the index {vertex_one}. "
+                + "Use the entanglement_graph attribute to see existing vertices."
+            )
 
         if vertex_two >= len(self.vertex_qubit):
-            raise Exception(f"There is no vertex with the index {vertex_two}.")
+            raise Exception(
+                f"There is no vertex with the index {vertex_two}. "
+                + "Use the entanglement_graph attribute to see existing vertices."
+            )
 
         if self.vertex_measured[vertex_one] or self.vertex_measured[vertex_two]:
             raise Exception("Cannot add edge after measure.")

@@ -16,9 +16,7 @@ class GraphCircuit(QubitManager):
         self.add_wasm_to_reg("init_corrections", self.wfh, [], [])
 
         self.entanglement_graph = nx.Graph()
-
-        self.vertex_flow: Dict[int, int] = dict()
-        self.vertex_flow_inverse: Dict[int, List[int]] = dict()
+        self.flow_graph = nx.DiGraph()
 
         self.output_vertices: List[int] = []
 
@@ -29,7 +27,7 @@ class GraphCircuit(QubitManager):
     def correct_outputs(self) -> None:
         unmeasured_graph_vertices = [
             vertex
-            for vertex in self.vertex_flow.keys()
+            for vertex in self._vertices_with_flow()
             if not self.vertex_measured[vertex]
         ]
         if len(unmeasured_graph_vertices) > 0:
@@ -48,7 +46,7 @@ class GraphCircuit(QubitManager):
 
         index = len(self.vertex_qubit) - 1
         self.entanglement_graph.add_node(node_for_adding=index)
-        self.vertex_flow_inverse[index] = []
+        self.flow_graph.add_node(node_for_adding=index)
 
         return index
 
@@ -75,6 +73,9 @@ class GraphCircuit(QubitManager):
         index = self._add_vertex(qubit=qubit)
 
         return index
+    
+    def _vertices_with_flow(self) -> List[int]:
+        return list(set(predecessor for vertex in self.flow_graph.nodes for predecessor in self.flow_graph.predecessors(vertex)))
 
     def add_edge(self, vertex_one: int, vertex_two: int) -> None:
         if vertex_one > vertex_two:
@@ -83,14 +84,13 @@ class GraphCircuit(QubitManager):
                 + "Cannot add edge into the past."
             )
 
-        # if vertex_one >= len(self.vertex_qubit):
         if vertex_one not in self.entanglement_graph.nodes:
             raise Exception(
                 f"There is no vertex with the index {vertex_one}. "
                 + "Use the entanglement_graph attribute to see existing vertices."
             )
 
-        if vertex_two >= len(self.vertex_qubit):
+        if vertex_two not in self.entanglement_graph.nodes:
             raise Exception(
                 f"There is no vertex with the index {vertex_two}. "
                 + "Use the entanglement_graph attribute to see existing vertices."
@@ -103,7 +103,7 @@ class GraphCircuit(QubitManager):
         # vertex_one is the flow can have been measured.
         measured_inverse_flow = [
             flow_inverse
-            for flow_inverse in self.vertex_flow_inverse[vertex_one]
+            for flow_inverse in self.flow_graph.predecessors(vertex_one)
             if self.vertex_measured[flow_inverse]
         ]
         if len(measured_inverse_flow) > 0:
@@ -116,11 +116,9 @@ class GraphCircuit(QubitManager):
         # If this is the first future of vertex_one then it will be taken to be its flow.
         # This is only not the case if vertex_one is an output vertex, in which case it has no flow.
         # If vertex_two is to be the flow of vertex_one than we must check that neighbours of
-        # vertex_two are measured after vertex_one.
-        if (vertex_one not in self.vertex_flow.keys()) and (
+        if (vertex_one not in self._vertices_with_flow()) and (
             vertex_one not in self.output_vertices
         ):
-            # vertex_neighbours = self._vertex_neighbour(vertex=vertex_two)
             vertex_neighbours = self.entanglement_graph.neighbors(n=vertex_two)
             if any(vertex < vertex_one for vertex in vertex_neighbours):
                 raise Exception(
@@ -133,20 +131,22 @@ class GraphCircuit(QubitManager):
         # any vertices of which vertex_two is its flow.
         if any(
             flow_inverse > vertex_one
-            for flow_inverse in self.vertex_flow_inverse[vertex_two]
+            for flow_inverse in self.flow_graph.predecessors(vertex_two)
         ):
             raise Exception(
                 "This does not define a valid flow. "
-                f"In particular {vertex_two} is the flow of {self.vertex_flow_inverse[vertex_two]}, "
+                f"In particular {vertex_two} is the flow of {self.flow_graph.predecessors(vertex_two)}, "
                 f"some of which are measured before {vertex_one}."
             )
 
         # If this is the first future of vertex_one then it is taken to be its flow.
-        if vertex_one not in self.vertex_flow.keys() and (
+        if vertex_one not in self._vertices_with_flow() and (
             vertex_one not in self.output_vertices
         ):
-            self.vertex_flow[vertex_one] = vertex_two
-            self.vertex_flow_inverse[vertex_two].append(vertex_one)
+            self.flow_graph.add_edge(
+                u_of_edge=vertex_one,
+                v_of_edge=vertex_two,
+            )
 
         self.CZ(self.vertex_qubit[vertex_one], self.vertex_qubit[vertex_two])
 
@@ -211,9 +211,11 @@ class GraphCircuit(QubitManager):
 
         # Check that the flow of the vertex being measured has
         # not been measured.
-        assert not self.vertex_measured[self.vertex_flow[vertex]]
+        assert len(list(self.flow_graph.successors(vertex))) == 1
+        vertex_flow = list(self.flow_graph.successors(vertex))[0]
+        assert not self.vertex_measured[vertex_flow]
 
-        self.add_c_setreg(value=self.vertex_flow[vertex], arg=self.index_reg)
+        self.add_c_setreg(value=vertex_flow, arg=self.index_reg)
         self.add_wasm_to_reg(
             "update_x_correction",
             self.wfh,
@@ -221,8 +223,7 @@ class GraphCircuit(QubitManager):
             [],
         )
 
-        # for neighbour in self._vertex_neighbour(self.vertex_flow[vertex]):
-        for neighbour in self.entanglement_graph.neighbors(n=self.vertex_flow[vertex]):
+        for neighbour in self.entanglement_graph.neighbors(n=vertex_flow):
             if neighbour == vertex:
                 continue
 

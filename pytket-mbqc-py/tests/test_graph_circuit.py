@@ -1,4 +1,4 @@
-from pytket_mbqc_py import get_wasm_file_handler
+# from pytket_mbqc_py import get_wasm_file_handler
 from pytket.extensions.quantinuum import QuantinuumBackend, QuantinuumAPIOffline
 from pytket_mbqc_py import GraphCircuit
 from pytket.unit_id import BitRegister
@@ -30,7 +30,7 @@ def test_plus_state():
     result = backend.run_circuit(
         circuit=compiled_circuit,
         n_shots=n_shots,
-        wasm_file_handler=get_wasm_file_handler(),
+        # wasm_file_handler=get_wasm_file_handler(),
     )
 
     assert result.get_counts(output_reg)[(0,)] == 100
@@ -65,7 +65,7 @@ def test_x_gate():
     result = backend.run_circuit(
         circuit=compiled_circuit,
         n_shots=100,
-        wasm_file_handler=get_wasm_file_handler(),
+        # wasm_file_handler=get_wasm_file_handler(),
     )
 
     assert result.get_counts(output_reg)[(1,)] == 100
@@ -127,7 +127,7 @@ def test_cnot(input_state, output_state):
     result = backend.run_circuit(
         circuit=compiled_circuit,
         n_shots=n_shots,
-        wasm_file_handler=get_wasm_file_handler(),
+        # wasm_file_handler=get_wasm_file_handler(),
     )
 
     assert result.get_counts(output_reg)[output_state] == n_shots

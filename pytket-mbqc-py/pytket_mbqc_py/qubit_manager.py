@@ -1,13 +1,10 @@
 from pytket import Circuit
 from pytket.unit_id import Qubit, BitRegister
-import math
+# import math
 
 
 class QubitManager(Circuit):
     def __init__(self, n_physical_qubits: int) -> None:
-        index_bits_required = max(1, math.ceil(math.log2(n_physical_qubits)))
-        if index_bits_required >= 32:
-            raise Exception("You cannot index that many qubits.")
 
         self.qubit_list = [Qubit(index=i) for i in range(n_physical_qubits)]
         self.qubit_initialised = {qubit: False for qubit in self.qubit_list}
@@ -34,9 +31,6 @@ class QubitManager(Circuit):
             self.add_c_register(register=meas_reg)
             self.add_c_register(register=x_corr_reg)
             self.add_c_register(register=z_corr_reg)
-
-        self.index_reg = BitRegister(name="index", size=index_bits_required)
-        self.add_c_register(register=self.index_reg)
 
     def get_qubit(self) -> Qubit:
         if len(self.qubit_list) == 0:

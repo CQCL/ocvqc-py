@@ -1,7 +1,6 @@
 from pytket_mbqc_py.qubit_manager import QubitManager
-from typing import List, Tuple, Dict
+from typing import List, Tuple
 from pytket import Qubit
-from pytket_mbqc_py.wasm_file_handler import get_wasm_file_handler
 import networkx as nx  # type:ignore
 
 
@@ -11,9 +10,6 @@ class GraphCircuit(QubitManager):
         n_physical_qubits: int,
     ) -> None:
         super().__init__(n_physical_qubits=n_physical_qubits)
-
-        self.wfh = get_wasm_file_handler()
-        self.add_wasm_to_reg("init_corrections", self.wfh, [], [])
 
         self.entanglement_graph = nx.Graph()
         self.flow_graph = nx.DiGraph()
@@ -158,25 +154,11 @@ class GraphCircuit(QubitManager):
         )
 
     def _apply_correction(self, vertex: int) -> None:
-        self.add_c_setreg(vertex, self.index_reg)
-
-        self.add_wasm_to_reg(
-            "get_x_correction",
-            self.wfh,
-            [self.index_reg],
-            [self.qubit_x_corr_reg[self.vertex_qubit[vertex]]],
-        )
         self.X(
             self.vertex_qubit[vertex],
             condition=self.qubit_x_corr_reg[self.vertex_qubit[vertex]][0],
         )
 
-        self.add_wasm_to_reg(
-            "get_z_correction",
-            self.wfh,
-            [self.index_reg],
-            [self.qubit_z_corr_reg[self.vertex_qubit[vertex]]],
-        )
         self.Z(
             self.vertex_qubit[vertex],
             condition=self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0],
@@ -215,12 +197,9 @@ class GraphCircuit(QubitManager):
         vertex_flow = list(self.flow_graph.successors(vertex))[0]
         assert not self.vertex_measured[vertex_flow]
 
-        self.add_c_setreg(value=vertex_flow, arg=self.index_reg)
-        self.add_wasm_to_reg(
-            "update_x_correction",
-            self.wfh,
-            [self.qubit_meas_reg[self.vertex_qubit[vertex]], self.index_reg],
-            [],
+        self.add_classicalexpbox_bit(
+            self.qubit_meas_reg[self.vertex_qubit[vertex]][0] ^ self.qubit_x_corr_reg[self.vertex_qubit[vertex_flow]][0],
+            [self.qubit_x_corr_reg[self.vertex_qubit[vertex_flow]][0]],
         )
 
         for neighbour in self.entanglement_graph.neighbors(n=vertex_flow):
@@ -230,10 +209,7 @@ class GraphCircuit(QubitManager):
             # Check that the vertex being updated has not been measured
             assert not self.vertex_measured[neighbour]
 
-            self.add_c_setreg(value=neighbour, arg=self.index_reg)
-            self.add_wasm_to_reg(
-                "update_z_correction",
-                self.wfh,
-                [self.qubit_meas_reg[self.vertex_qubit[vertex]], self.index_reg],
-                [],
+            self.add_classicalexpbox_bit(
+                self.qubit_meas_reg[self.vertex_qubit[vertex]][0] ^ self.qubit_z_corr_reg[self.vertex_qubit[neighbour]][0],
+                [self.qubit_z_corr_reg[self.vertex_qubit[neighbour]][0]],
             )

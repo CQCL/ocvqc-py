@@ -140,8 +140,7 @@ def test_cnot(input_state, output_state):
     ],
 )
 def test_cnot_block(input_state, output_state, n_columns):
-
-    n_physical_qubits=20
+    n_physical_qubits = 20
     n_rows = len(input_state) - 1
 
     circuit = CNOTBlocksGraphCircuit(
@@ -150,7 +149,7 @@ def test_cnot_block(input_state, output_state, n_columns):
         n_rows=n_rows,
         n_columns=n_columns,
     )
-        
+
     output_vertex_quibts = circuit.get_outputs()
     output_reg = BitRegister(name="output", size=len(output_vertex_quibts))
     circuit.add_c_register(register=output_reg)

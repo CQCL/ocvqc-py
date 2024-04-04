@@ -28,8 +28,12 @@ class GraphCircuit(QubitManager):
                 "Only output vertices can be unmeasured. "
                 + f"In particular {unmeasured_flow_vertices} have flow but are not measured."
             )
-        
-        output_qubits = {vertex: qubit for vertex, qubit in enumerate(self.vertex_qubit) if not self.vertex_measured[vertex]}
+
+        output_qubits = {
+            vertex: qubit
+            for vertex, qubit in enumerate(self.vertex_qubit)
+            if not self.vertex_measured[vertex]
+        }
 
         for vertex in output_qubits.keys():
             self._apply_correction(vertex=vertex)
@@ -64,9 +68,15 @@ class GraphCircuit(QubitManager):
         index = self._add_vertex(qubit=qubit)
 
         return index
-    
+
     def _vertices_with_flow(self) -> List[int]:
-        return list(set(predecessor for vertex in self.flow_graph.nodes for predecessor in self.flow_graph.predecessors(vertex)))
+        return list(
+            set(
+                predecessor
+                for vertex in self.flow_graph.nodes
+                for predecessor in self.flow_graph.predecessors(vertex)
+            )
+        )
 
     def add_edge(self, vertex_one: int, vertex_two: int) -> None:
         if vertex_one > vertex_two:
@@ -111,7 +121,7 @@ class GraphCircuit(QubitManager):
         if vertex_one not in self._vertices_with_flow():
             past_neighbours = [
                 vertex
-                for vertex in self.entanglement_graph.neighbors(n=vertex_two) 
+                for vertex in self.entanglement_graph.neighbors(n=vertex_two)
                 if vertex < vertex_one
             ]
             if len(past_neighbours) > 0:
@@ -163,9 +173,10 @@ class GraphCircuit(QubitManager):
         )
 
     def corrected_measure(self, vertex: int, t_multiple: int = 0) -> None:
-
         if self.vertex_measured[vertex]:
-            raise Exception(f"Vertex {vertex} has already been measured and cannot be measured again.")
+            raise Exception(
+                f"Vertex {vertex} has already been measured and cannot be measured again."
+            )
 
         if any(self.vertex_measured[vertex:]):
             raise Exception(
@@ -203,7 +214,8 @@ class GraphCircuit(QubitManager):
         assert not self.vertex_measured[vertex_flow]
 
         self.add_classicalexpbox_bit(
-            self.qubit_meas_reg[self.vertex_qubit[vertex]][0] ^ self.qubit_x_corr_reg[self.vertex_qubit[vertex_flow]][0],
+            self.qubit_meas_reg[self.vertex_qubit[vertex]][0]
+            ^ self.qubit_x_corr_reg[self.vertex_qubit[vertex_flow]][0],
             [self.qubit_x_corr_reg[self.vertex_qubit[vertex_flow]][0]],
         )
 
@@ -215,6 +227,7 @@ class GraphCircuit(QubitManager):
             assert not self.vertex_measured[neighbour]
 
             self.add_classicalexpbox_bit(
-                self.qubit_meas_reg[self.vertex_qubit[vertex]][0] ^ self.qubit_z_corr_reg[self.vertex_qubit[neighbour]][0],
+                self.qubit_meas_reg[self.vertex_qubit[vertex]][0]
+                ^ self.qubit_z_corr_reg[self.vertex_qubit[neighbour]][0],
                 [self.qubit_z_corr_reg[self.vertex_qubit[neighbour]][0]],
             )

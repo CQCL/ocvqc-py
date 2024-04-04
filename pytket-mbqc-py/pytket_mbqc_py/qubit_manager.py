@@ -5,7 +5,6 @@ from pytket.unit_id import Qubit, BitRegister
 
 class QubitManager(Circuit):
     def __init__(self, n_physical_qubits: int) -> None:
-
         self.qubit_list = [Qubit(index=i) for i in range(n_physical_qubits)]
         self.qubit_initialised = {qubit: False for qubit in self.qubit_list}
         self.qubit_meas_reg = {
@@ -47,10 +46,14 @@ class QubitManager(Circuit):
         self.Reset(qubit=qubit)
 
         return qubit
-    
+
     @property
     def physical_qubits_used(self):
-        return [qubit for qubit, initialised in self.qubit_initialised.items() if initialised]
+        return [
+            qubit
+            for qubit, initialised in self.qubit_initialised.items()
+            if initialised
+        ]
 
     def managed_measure(self, qubit: Qubit) -> None:
         self.qubit_list.insert(0, qubit)

@@ -47,6 +47,10 @@ class QubitManager(Circuit):
         self.Reset(qubit=qubit)
 
         return qubit
+    
+    @property
+    def physical_qubits_used(self):
+        return [qubit for qubit, initialised in self.qubit_initialised.items() if initialised]
 
     def managed_measure(self, qubit: Qubit) -> None:
         self.qubit_list.insert(0, qubit)

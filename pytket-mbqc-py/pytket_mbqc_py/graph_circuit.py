@@ -1,5 +1,5 @@
 from pytket_mbqc_py.qubit_manager import QubitManager
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 from pytket import Qubit
 import networkx as nx  # type:ignore
 
@@ -14,27 +14,27 @@ class GraphCircuit(QubitManager):
         self.entanglement_graph = nx.Graph()
         self.flow_graph = nx.DiGraph()
 
-        self.output_vertices: List[int] = []
-
         self.vertex_qubit: List[Qubit] = []
-
         self.vertex_measured: List[bool] = []
 
-    def correct_outputs(self) -> None:
-        unmeasured_graph_vertices = [
+    def get_outputs(self) -> Dict[int, Qubit]:
+        unmeasured_flow_vertices = [
             vertex
             for vertex in self._vertices_with_flow()
             if not self.vertex_measured[vertex]
         ]
-        if len(unmeasured_graph_vertices) > 0:
+        if len(unmeasured_flow_vertices) > 0:
             raise Exception(
                 "Only output vertices can be unmeasured. "
-                + f"In particular {unmeasured_graph_vertices} must be measured."
+                + f"In particular {unmeasured_flow_vertices} have flow but are not measured."
             )
+        
+        output_qubits = {vertex: qubit for vertex, qubit in enumerate(self.vertex_qubit) if not self.vertex_measured[vertex]}
 
-        for vertex, measured in enumerate(self.vertex_measured):
-            if not measured:
-                self._apply_correction(vertex=vertex)
+        for vertex in output_qubits.keys():
+            self._apply_correction(vertex=vertex)
+
+        return output_qubits
 
     def _add_vertex(self, qubit: Qubit) -> int:
         self.vertex_qubit.append(qubit)
@@ -54,11 +54,6 @@ class GraphCircuit(QubitManager):
         index = self._add_vertex(qubit=qubit)
 
         return (qubit, index)
-
-    def add_output_vertex(self) -> int:
-        index = self.add_graph_vertex()
-        self.output_vertices.append(index)
-        return index
 
     def add_graph_vertex(self) -> int:
         if len(self.vertex_qubit) == 100:
@@ -104,23 +99,28 @@ class GraphCircuit(QubitManager):
         ]
         if len(measured_inverse_flow) > 0:
             raise Exception(
-                "This does not define a valid flow. "
+                f"Adding the edge ({vertex_one}, {vertex_two}) does not define a valid flow. "
                 + f"In particular {measured_inverse_flow} are the the inverse flow of {vertex_one} "
-                + "but have already been measured."
+                + "and have already been measured. "
+                + "The inverse flow of qubits to which you wish to attach edges must not be measured. "
             )
 
         # If this is the first future of vertex_one then it will be taken to be its flow.
         # This is only not the case if vertex_one is an output vertex, in which case it has no flow.
         # If vertex_two is to be the flow of vertex_one than we must check that neighbours of
-        if (vertex_one not in self._vertices_with_flow()) and (
-            vertex_one not in self.output_vertices
-        ):
-            vertex_neighbours = self.entanglement_graph.neighbors(n=vertex_two)
-            if any(vertex < vertex_one for vertex in vertex_neighbours):
+        if vertex_one not in self._vertices_with_flow():
+            past_neighbours = [
+                vertex
+                for vertex in self.entanglement_graph.neighbors(n=vertex_two) 
+                if vertex < vertex_one
+            ]
+            if len(past_neighbours) > 0:
                 raise Exception(
-                    "This circuit does not have a valid flow. "
-                    + f"In particular {[vertex for vertex in vertex_neighbours if vertex < vertex_one]} "
-                    + f"are neighbours of {vertex_two} but are in the past of {vertex_one}."
+                    f"Adding the edge ({vertex_one}, {vertex_two}) does not define a valid flow. "
+                    + f"In particular {past_neighbours} "
+                    + f"are neighbours of {vertex_two} but are in the past of {vertex_one}. "
+                    + f"As {vertex_two} would become the flow of {vertex_one} all of the "
+                    + f"neighbours of {vertex_two} must be in the past of {vertex_one}."
                 )
 
         # vertex_one is a neighbour of vertex_two. As such vertex_one must be measured after
@@ -136,9 +136,7 @@ class GraphCircuit(QubitManager):
             )
 
         # If this is the first future of vertex_one then it is taken to be its flow.
-        if vertex_one not in self._vertices_with_flow() and (
-            vertex_one not in self.output_vertices
-        ):
+        if vertex_one not in self._vertices_with_flow():
             self.flow_graph.add_edge(
                 u_of_edge=vertex_one,
                 v_of_edge=vertex_two,
@@ -165,15 +163,15 @@ class GraphCircuit(QubitManager):
         )
 
     def corrected_measure(self, vertex: int, t_multiple: int = 0) -> None:
-        if vertex in self.output_vertices:
-            raise Exception("This is an output qubit and cannot be measured.")
 
-        if not all(self.vertex_measured[:vertex]):
-            print(self.vertex_measured[:vertex])
+        if self.vertex_measured[vertex]:
+            raise Exception(f"Vertex {vertex} has already been measured and cannot be measured again.")
+
+        if any(self.vertex_measured[vertex:]):
             raise Exception(
-                "Measurement order has not been respected. "
-                + f"Vertices {[i for i, measured in enumerate(self.vertex_measured[:vertex]) if not measured]} "
-                + f"are in the past of {vertex} but have not been measured."
+                f"Measuring {vertex} does not respect the measurement order. "
+                + f"Vertices {[vertex + i for i, measured in enumerate(self.vertex_measured[vertex:]) if measured]} "
+                + f"are in the future of {vertex} and have already been measured."
             )
 
         self._apply_correction(vertex=vertex)
@@ -193,7 +191,14 @@ class GraphCircuit(QubitManager):
 
         # Check that the flow of the vertex being measured has
         # not been measured.
-        assert len(list(self.flow_graph.successors(vertex))) == 1
+        assert len(list(self.flow_graph.successors(vertex))) <= 1
+
+        if len(list(self.flow_graph.successors(vertex))) == 0:
+            raise Exception(
+                f"Vertex {vertex} has no flow. "
+                "It is not possible to perform a corrected measure of a qubit without flow. "
+                "Please give this vertex a flow, or use the get_output to perform the necessary corrections."
+            )
         vertex_flow = list(self.flow_graph.successors(vertex))[0]
         assert not self.vertex_measured[vertex_flow]
 

@@ -15,6 +15,8 @@ pytest-cov = "^4.1.0"
 ruff = "^0.2.2"
 mypy = "^1.8.0"
 importlib-resources = "^6.1.2"
+pytest-parallel = "^0.1.1"
+py = "^1.11.0"
 
 [build-system]
 requires = ["poetry-core"]

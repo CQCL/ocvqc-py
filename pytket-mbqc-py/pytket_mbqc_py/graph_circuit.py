@@ -51,14 +51,12 @@ class GraphCircuit(QubitManager):
         return index
 
     def add_input_vertex(self) -> Tuple[Qubit, int]:
-
         qubit = super().get_qubit()
         index = self._add_vertex(qubit=qubit)
 
         return (qubit, index)
 
     def add_graph_vertex(self) -> int:
-
         qubit = self.get_qubit()
         self.H(qubit)
         index = self._add_vertex(qubit=qubit)

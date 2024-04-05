@@ -15,12 +15,13 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
     the CNOT gates can be considered to be classical CNOT gates,
     and the ideal outcome is deterministic.
     """
+
     def __init__(
-            self,
-            n_physical_qubits: int,
-            input_state: Tuple[int],
-            n_layers: int,
-        ) -> None:
+        self,
+        n_physical_qubits: int,
+        input_state: Tuple[int],
+        n_layers: int,
+    ) -> None:
         """Initialisation method.
 
         :param n_physical_qubits: The maximum number of physical qubits
@@ -34,6 +35,9 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
         :param n_layers: The number of layers of CNOT gates.
         :type n_layers: int
         """
+
+        self.input_state = input_state
+        self.n_layers = n_layers
 
         # The number of rows of CNOT blocks
         # note that this is one less than the number of entries in the
@@ -53,7 +57,6 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
         super().__init__(n_physical_qubits=n_physical_qubits)
 
         for layer in range(n_layers):
-
             # If this is the first layer then the control qubit of the first row needs
             # to be initialised. If not then the control vertex is taken from
             # the layer before.
@@ -65,7 +68,6 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
                 control_vertex = cnot_block_vertex_list[layer - 1][0][4]
 
             for row in range(n_rows):
-
                 # for each block the 0th qubit is the control.
                 cnot_block_vertex_list[layer][row].append(control_vertex)
 
@@ -122,13 +124,11 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
                 # If this is not the 0th layer then the previous layer
                 # can be measured.
                 if layer > 0:
-
                     # If this is the 1th later then the inputs of the previous
                     # layer (the 0th layer) will not have been measured and should now be.
                     # Note that or other layers they will have been measured by this point
                     # as they are the 4th and 5th vertices of previous layers.
                     if layer == 1:
-
                         # If this is the 0th row then we need to measure the input
                         # control. It is not necessary in general as it would be the
                         # output target of previous blocks.
@@ -196,7 +196,7 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
             )
 
     @property
-    def output_state(self) -> Tuple[int]:
+    def output_state(self) -> Tuple[int, ...]:
         """The ideal output bit string.
 
         :return: The ideal output bit string.
@@ -205,5 +205,5 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
         output_state = list(self.input_state)
         for _ in range(self.n_layers):
             for i in range(len(self.input_state) - 1):
-                output_state[i+1] = output_state[i] ^ output_state[i+1]
+                output_state[i + 1] = output_state[i] ^ output_state[i + 1]
         return tuple(output_state)

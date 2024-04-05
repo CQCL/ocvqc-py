@@ -139,10 +139,40 @@ def test_cnot(input_state, output_state):
         ((1, 1, 1), (1, 1, 1), 4),
         ((0, 0, 1), (0, 0, 1), 1),
         ((0, 1, 1), (0, 1, 0), 1),
-        ((0, 1, 1, 0), (0, 1, 0, 1), 3),
     ],
 )
 def test_cnot_block(input_state, output_state, n_layers):
+    n_physical_qubits = 20
+
+    circuit = CNOTBlocksGraphCircuit(
+        n_physical_qubits=n_physical_qubits,
+        input_state=input_state,
+        n_layers=n_layers,
+    )
+
+    output_vertex_quibts = circuit.get_outputs()
+    output_reg = BitRegister(name="output", size=len(output_vertex_quibts))
+    circuit.add_c_register(register=output_reg)
+    for i, qubit in enumerate(output_vertex_quibts.values()):
+        circuit.Measure(qubit=qubit, bit=output_reg[i])
+
+    api_offline = QuantinuumAPIOffline()
+    backend = QuantinuumBackend(device_name="H1-1LE", api_handler=api_offline)
+    compiled_circuit = backend.get_compiled_circuit(circuit)
+
+    n_shots = 100
+    result = backend.run_circuit(
+        circuit=compiled_circuit,
+        n_shots=n_shots,
+    )
+    assert result.get_counts(output_reg)[output_state] == n_shots
+
+
+@pytest.mark.high_compute
+def test_large_cnot_block():
+    input_state = (0, 1, 1, 0)
+    output_state = (0, 1, 0, 1)
+    n_layers = 3
     n_physical_qubits = 20
 
     circuit = CNOTBlocksGraphCircuit(

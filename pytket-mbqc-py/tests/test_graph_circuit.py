@@ -155,6 +155,7 @@ def test_cnot_block(input_state, output_state, n_layers):
     circuit.add_c_register(register=output_reg)
     for i, qubit in enumerate(output_vertex_quibts.values()):
         circuit.Measure(qubit=qubit, bit=output_reg[i])
+    assert circuit.output_state == output_state
 
     api_offline = QuantinuumAPIOffline()
     backend = QuantinuumBackend(device_name="H1-1LE", api_handler=api_offline)
@@ -186,6 +187,7 @@ def test_large_cnot_block():
     circuit.add_c_register(register=output_reg)
     for i, qubit in enumerate(output_vertex_quibts.values()):
         circuit.Measure(qubit=qubit, bit=output_reg[i])
+    assert circuit.output_state == output_state
 
     api_offline = QuantinuumAPIOffline()
     backend = QuantinuumBackend(device_name="H1-1LE", api_handler=api_offline)

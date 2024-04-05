@@ -10,7 +10,7 @@ on:
 
 jobs:
   
-  Run-Tests-Ubuntu:
+  Run-Tests:
 
     strategy:
       matrix:
@@ -40,11 +40,7 @@ jobs:
         run: mypy pytket-mbqc-py/pytket_mbqc_py/ --warn-unused-ignores
 
       - name: Lint Check
-        uses: chartboost/ruff-action@v1
-        with:
-          args: check
+        run: ruff check
 
       - name: Format Check
-        uses: chartboost/ruff-action@v1
-        with:
-          args: format --check
+        run: ruff format --check

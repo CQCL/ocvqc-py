@@ -51,8 +51,6 @@ class GraphCircuit(QubitManager):
         return index
 
     def add_input_vertex(self) -> Tuple[Qubit, int]:
-        if len(self.vertex_qubit) == 100:
-            raise Exception("The current maximum number of vertices is 100.")
 
         qubit = super().get_qubit()
         index = self._add_vertex(qubit=qubit)
@@ -60,8 +58,6 @@ class GraphCircuit(QubitManager):
         return (qubit, index)
 
     def add_graph_vertex(self) -> int:
-        if len(self.vertex_qubit) == 100:
-            raise Exception("The current maximum number of vertices is 100.")
 
         qubit = self.get_qubit()
         self.H(qubit)
@@ -118,6 +114,7 @@ class GraphCircuit(QubitManager):
         # If this is the first future of vertex_one then it will be taken to be its flow.
         # This is only not the case if vertex_one is an output vertex, in which case it has no flow.
         # If vertex_two is to be the flow of vertex_one than we must check that neighbours of
+        # vertex_two are measured after vertex_one.
         if vertex_one not in self._vertices_with_flow():
             past_neighbours = [
                 vertex

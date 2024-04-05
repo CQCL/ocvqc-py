@@ -130,24 +130,25 @@ def test_cnot(input_state, output_state):
 
 
 @pytest.mark.parametrize(
-    "input_state, output_state, n_columns",
+    "input_state, output_state, n_layers",
     [
         ((1, 0), (1, 1), 1),
         ((1, 1), (1, 1), 2),
         ((1, 1, 0), (1, 1, 1), 2),
         ((0, 1, 0), (0, 1, 1), 3),
         ((1, 1, 1), (1, 1, 1), 4),
+        ((0, 0, 1), (0, 0, 1), 1),
+        ((0, 1, 1), (0, 1, 0), 1),
+        ((0, 1, 1, 0), (0, 1, 0, 1), 3),
     ],
 )
-def test_cnot_block(input_state, output_state, n_columns):
+def test_cnot_block(input_state, output_state, n_layers):
     n_physical_qubits = 20
-    n_rows = len(input_state) - 1
 
     circuit = CNOTBlocksGraphCircuit(
         n_physical_qubits=n_physical_qubits,
         input_state=input_state,
-        n_rows=n_rows,
-        n_columns=n_columns,
+        n_layers=n_layers,
     )
 
     output_vertex_quibts = circuit.get_outputs()

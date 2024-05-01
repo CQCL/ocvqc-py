@@ -1,8 +1,10 @@
 """Class for generating graph states implementing layers of
 CNOT gates.
 """
+
+from typing import List, Tuple
+
 from .graph_circuit import GraphCircuit
-from typing import Tuple, List
 
 
 class CNOTBlocksGraphCircuit(GraphCircuit):

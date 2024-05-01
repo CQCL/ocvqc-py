@@ -1,7 +1,8 @@
-from pytket.extensions.quantinuum import QuantinuumBackend, QuantinuumAPIOffline
-from pytket_mbqc_py import GraphCircuit, CNOTBlocksGraphCircuit
-from pytket.unit_id import BitRegister
 import pytest
+from pytket.extensions.quantinuum import QuantinuumAPIOffline, QuantinuumBackend
+from pytket.unit_id import BitRegister
+
+from pytket_mbqc_py import CNOTBlocksGraphCircuit, GraphCircuit
 
 
 def test_plus_state():

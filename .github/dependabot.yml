@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "pytket-mbqc-py"
+    schedule:
+      interval: "weekly"
+    target-branch: "main"
+    commit-message:
+      prefix: "ci(py-deps)"
+  - package-ecosystem: github-actions
+    directory: ".github/workflows"
+    schedule:
+      interval: "weekly"
+    target-branch: "main"
+    commit-message:
+      prefix: "ci(workflow-deps)"

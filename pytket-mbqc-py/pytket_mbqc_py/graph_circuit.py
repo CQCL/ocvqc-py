@@ -29,14 +29,18 @@ class GraphCircuit(QubitManager):
                 + f"In particular {unmeasured_flow_vertices} have flow but are not measured."
             )
 
+        # At this point we know that all unmeasured qubits
+        # have no flow. As such they are safely outputs.
         output_qubits = {
             vertex: qubit
             for vertex, qubit in enumerate(self.vertex_qubit)
             if not self.vertex_measured[vertex]
         }
 
+        # We need to correct all unmeasured qubits.
         for vertex in output_qubits.keys():
-            self._apply_correction(vertex=vertex)
+            self._apply_x_correction(vertex=vertex)
+            self._apply_z_correction(vertex=vertex)
 
         return output_qubits
 
@@ -51,7 +55,7 @@ class GraphCircuit(QubitManager):
         return index
 
     def add_input_vertex(self) -> Tuple[Qubit, int]:
-        qubit = super().get_qubit()
+        qubit = self.get_qubit()
         index = self._add_vertex(qubit=qubit)
 
         return (qubit, index)
@@ -110,7 +114,6 @@ class GraphCircuit(QubitManager):
             )
 
         # If this is the first future of vertex_one then it will be taken to be its flow.
-        # This is only not the case if vertex_one is an output vertex, in which case it has no flow.
         # If vertex_two is to be the flow of vertex_one than we must check that neighbours of
         # vertex_two are measured after vertex_one.
         if vertex_one not in self._vertices_with_flow():
@@ -156,23 +159,33 @@ class GraphCircuit(QubitManager):
             v_of_edge=vertex_two,
         )
 
-    def _apply_correction(self, vertex: int) -> None:
+    def _apply_x_correction(self, vertex: int) -> None:
         self.X(
             self.vertex_qubit[vertex],
             condition=self.qubit_x_corr_reg[self.vertex_qubit[vertex]][0],
         )
 
+    def _apply_z_correction(self, vertex: int) -> None:
         self.Z(
             self.vertex_qubit[vertex],
             condition=self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0],
         )
 
+    def _apply_classical_z_correction(self, vertex: int) -> None:
+        self.add_classicalexpbox_bit(
+            self.qubit_meas_reg[self.vertex_qubit[vertex]][0]
+            ^ self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0],
+            [self.qubit_meas_reg[self.vertex_qubit[vertex]][0]],
+        )
+
     def corrected_measure(self, vertex: int, t_multiple: int = 0) -> None:
+        # Check that the vertex being measured has not already been measured.
         if self.vertex_measured[vertex]:
             raise Exception(
                 f"Vertex {vertex} has already been measured and cannot be measured again."
             )
 
+        # Check that all vertices before the one given have been measured.
         if any(self.vertex_measured[vertex:]):
             raise Exception(
                 f"Measuring {vertex} does not respect the measurement order. "
@@ -180,7 +193,7 @@ class GraphCircuit(QubitManager):
                 + f"are in the future of {vertex} and have already been measured."
             )
 
-        self._apply_correction(vertex=vertex)
+        self._apply_x_correction(vertex=vertex)
 
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8
@@ -193,6 +206,7 @@ class GraphCircuit(QubitManager):
         self.H(self.vertex_qubit[vertex])
 
         self.managed_measure(qubit=self.vertex_qubit[vertex])
+        self._apply_classical_z_correction(vertex=vertex)
         self.vertex_measured[vertex] = True
 
         # Check that the flow of the vertex being measured has

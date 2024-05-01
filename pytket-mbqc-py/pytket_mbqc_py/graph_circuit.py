@@ -193,6 +193,7 @@ class GraphCircuit(QubitManager):
                 + f"are in the future of {vertex} and have already been measured."
             )
 
+        # This is actually optional as the correction commutes with the measurement.
         self._apply_x_correction(vertex=vertex)
 
         inverse_t_multiple = 8 - t_multiple

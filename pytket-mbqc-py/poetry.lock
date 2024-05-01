@@ -2493,29 +2493,29 @@ zx = ["autoray (>=0.6.1)", "quimb (>=1.8,<2.0)"]
 
 [[package]]
 name = "pytket-pecos"
-version = "0.1.22"
+version = "0.1.24"
 description = "This package enables emulation of pytket circuits using the PECOS emulator."
 optional = false
 python-versions = "*"
 files = [
-    {file = "pytket_pecos-0.1.22-py2.py3-none-any.whl", hash = "sha256:50521eebd8a7947403a5b1f4961e5f33d494bddede3388406e18db10a978559a"},
-    {file = "pytket_pecos-0.1.22.tar.gz", hash = "sha256:c43e8a7956cd10527b0a332d1a44e53a1054b475a5289cfe4105d627dc178951"},
+    {file = "pytket_pecos-0.1.24-py2.py3-none-any.whl", hash = "sha256:6785dbeb4dea1fd7653ac60757cc874b31a4d1a258f96efb2df882e86e6df8d9"},
+    {file = "pytket_pecos-0.1.24.tar.gz", hash = "sha256:65ee51762b08ba80e60724ef6467fa73ea91ef68e55fb1e4da2cb9df7be1d93c"},
 ]
 
 [package.dependencies]
 pytket = ">=1.26.0"
-pytket-phir = ">=0.6.2"
+pytket-phir = ">=0.7.0"
 quantum-pecos = {version = ">=0.5.0dev10", extras = ["simulators", "wasmtime"]}
 
 [[package]]
 name = "pytket-phir"
-version = "0.6.2"
+version = "0.7.1"
 description = "A circuit analyzer and translator from pytket to PHIR"
 optional = false
 python-versions = "<3.13,>=3.10"
 files = [
-    {file = "pytket-phir-0.6.2.tar.gz", hash = "sha256:879f45d1c827fc4a11c396db35c6f111831250699abe9badc4f5fc455a3dd646"},
-    {file = "pytket_phir-0.6.2-py3-none-any.whl", hash = "sha256:98821acb9e91cf3e3750f6797e9aa58c549fcf0356ff3e9bffaaf4e4ef4bece3"},
+    {file = "pytket_phir-0.7.1-py3-none-any.whl", hash = "sha256:c7708a2129df363d533ac946d1402faffaca18c9e25efdfa44a88fda0d50e0fd"},
+    {file = "pytket_phir-0.7.1.tar.gz", hash = "sha256:fcd0649fb0c82f6cd5ea6223a79fb4822137c5fe0911de368fb7935aaae21478"},
 ]
 
 [package.dependencies]
@@ -3478,4 +3478,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "<3.12,>=3.10"
-content-hash = "f6a5048fd9f7f39f19d102ac2a765090cc47322a75207bfd6cfc7d29a5065d04"
+content-hash = "bf0c946bc30c20aa03a1716eb09e2acaec72fecd0bff12b27f805ffee7306dc2"

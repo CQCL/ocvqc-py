@@ -1,5 +1,5 @@
 from pytket import Circuit
-from pytket.unit_id import Qubit, BitRegister
+from pytket.unit_id import BitRegister, Qubit
 
 
 class QubitManager(Circuit):

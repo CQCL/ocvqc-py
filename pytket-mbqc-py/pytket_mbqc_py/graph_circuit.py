@@ -1,7 +1,9 @@
-from pytket_mbqc_py.qubit_manager import QubitManager
-from typing import List, Tuple, Dict
-from pytket import Qubit
+from typing import Dict, List, Tuple
+
 import networkx as nx  # type:ignore
+from pytket import Qubit
+
+from pytket_mbqc_py.qubit_manager import QubitManager
 
 
 class GraphCircuit(QubitManager):

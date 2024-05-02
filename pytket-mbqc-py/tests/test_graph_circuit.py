@@ -200,3 +200,51 @@ def test_large_cnot_block():
         n_shots=n_shots,
     )
     assert result.get_counts(output_reg)[output_state] == n_shots
+
+
+def test_3_q_ghz():
+    graph_circuit = GraphCircuit(n_physical_qubits=5)
+
+    input_quibt, input_vertex = graph_circuit.add_input_vertex()
+
+    graph_circuit.H(input_quibt)
+
+    vertex_layer_1_1 = graph_circuit.add_graph_vertex()
+    vertex_layer_1_2 = graph_circuit.add_graph_vertex()
+
+    graph_circuit.add_edge(input_vertex, vertex_layer_1_1)
+    graph_circuit.add_edge(input_vertex, vertex_layer_1_2)
+
+    graph_circuit.corrected_measure(vertex=input_vertex)
+
+    vertex_layer_2_1 = graph_circuit.add_graph_vertex()
+    vertex_layer_2_2 = graph_circuit.add_graph_vertex()
+
+    graph_circuit.add_edge(vertex_layer_1_1, vertex_layer_2_1)
+    graph_circuit.add_edge(vertex_layer_1_1, vertex_layer_2_2)
+
+    graph_circuit.corrected_measure(vertex=vertex_layer_1_1)
+
+    output_qubits = graph_circuit.get_outputs()
+
+    graph_circuit.H(output_qubits[3])
+    graph_circuit.H(output_qubits[4])
+
+    graph_circuit.CX(output_qubits[2], output_qubits[3])
+    graph_circuit.CX(output_qubits[2], output_qubits[4])
+    graph_circuit.H(output_qubits[2])
+
+    output_c_reg = graph_circuit.add_c_register(
+        name="output measure reg", size=len(output_qubits)
+    )
+    for qubit, bit in zip(output_qubits.values(), output_c_reg):
+        graph_circuit.Measure(qubit=qubit, bit=bit)
+
+    api_offline = QuantinuumAPIOffline()
+    backend = QuantinuumBackend(device_name="H1-1LE", api_handler=api_offline)
+    compiled_graph_circuit = backend.get_compiled_circuit(
+        circuit=graph_circuit, optimisation_level=0
+    )
+    n_shots = 100
+    result = backend.run_circuit(circuit=compiled_graph_circuit, n_shots=n_shots)
+    assert result.get_counts(cbits=output_c_reg)[(0, 0, 0)] == n_shots

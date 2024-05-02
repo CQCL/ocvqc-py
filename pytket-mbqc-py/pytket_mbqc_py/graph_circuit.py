@@ -2,6 +2,7 @@ from typing import Dict, List, Tuple
 
 import networkx as nx  # type:ignore
 from pytket import Qubit
+from pytket.unit_id import BitRegister
 
 from pytket_mbqc_py.qubit_manager import QubitManager
 
@@ -18,6 +19,8 @@ class GraphCircuit(QubitManager):
 
         self.vertex_qubit: List[Qubit] = []
         self.vertex_measured: List[bool] = []
+
+        self.qubit_x_corr_reg: List[BitRegister] = []
 
     def get_outputs(self) -> Dict[int, Qubit]:
         unmeasured_flow_vertices = [
@@ -53,6 +56,10 @@ class GraphCircuit(QubitManager):
         index = len(self.vertex_qubit) - 1
         self.entanglement_graph.add_node(node_for_adding=index)
         self.flow_graph.add_node(node_for_adding=index)
+
+        x_corr_reg = BitRegister(name=f"x_corr_{index}", size=1)
+        self.qubit_x_corr_reg.append(x_corr_reg)
+        self.add_c_register(register=x_corr_reg)
 
         return index
 
@@ -99,21 +106,6 @@ class GraphCircuit(QubitManager):
 
         if self.vertex_measured[vertex_one] or self.vertex_measured[vertex_two]:
             raise Exception("Cannot add edge after measure.")
-
-        # vertex_two is a new neighbour of vertex_one. As such none of the vertices of which
-        # vertex_one is the flow can have been measured.
-        measured_inverse_flow = [
-            flow_inverse
-            for flow_inverse in self.flow_graph.predecessors(vertex_one)
-            if self.vertex_measured[flow_inverse]
-        ]
-        if len(measured_inverse_flow) > 0:
-            raise Exception(
-                f"Adding the edge ({vertex_one}, {vertex_two}) does not define a valid flow. "
-                + f"In particular {measured_inverse_flow} are the the inverse flow of {vertex_one} "
-                + "and have already been measured. "
-                + "The inverse flow of qubits to which you wish to attach edges must not be measured. "
-            )
 
         # If this is the first future of vertex_one then it will be taken to be its flow.
         # If vertex_two is to be the flow of vertex_one than we must check that neighbours of
@@ -164,16 +156,30 @@ class GraphCircuit(QubitManager):
     def _apply_x_correction(self, vertex: int) -> None:
         self.X(
             self.vertex_qubit[vertex],
-            condition=self.qubit_x_corr_reg[self.vertex_qubit[vertex]][0],
+            condition=self.qubit_x_corr_reg[vertex][0],
         )
 
+    def _get_z_correction(self, vertex: int) -> None:
+        self.add_c_setreg(0, self.qubit_z_corr_reg[self.vertex_qubit[vertex]])
+
+        for neighbour in self.entanglement_graph.neighbors(n=vertex):
+            self.add_classicalexpbox_bit(
+                self.qubit_x_corr_reg[neighbour][0]
+                ^ self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0],
+                [self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0]],
+            )
+
     def _apply_z_correction(self, vertex: int) -> None:
+        self._get_z_correction(vertex=vertex)
+
         self.Z(
             self.vertex_qubit[vertex],
             condition=self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0],
         )
 
     def _apply_classical_z_correction(self, vertex: int) -> None:
+        self._get_z_correction(vertex=vertex)
+
         self.add_classicalexpbox_bit(
             self.qubit_meas_reg[self.vertex_qubit[vertex]][0]
             ^ self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0],
@@ -195,7 +201,9 @@ class GraphCircuit(QubitManager):
                 + f"are in the future of {vertex} and have already been measured."
             )
 
-        # This is actually optional as the correction commutes with the measurement.
+        # This is actually optional for graph vertices
+        # as the X correction commutes with the hadamard
+        # basis measurement.
         self._apply_x_correction(vertex=vertex)
 
         inverse_t_multiple = 8 - t_multiple
@@ -208,38 +216,35 @@ class GraphCircuit(QubitManager):
             self.T(self.vertex_qubit[vertex])
         self.H(self.vertex_qubit[vertex])
 
+        # measure and apply the necessary z corrections
+        # classically.
         self.managed_measure(qubit=self.vertex_qubit[vertex])
         self._apply_classical_z_correction(vertex=vertex)
         self.vertex_measured[vertex] = True
 
-        # Check that the flow of the vertex being measured has
-        # not been measured.
+        # Check that the vertex has at most one flow vertex
         assert len(list(self.flow_graph.successors(vertex))) <= 1
 
+        # Check that his vertex has flow.
+        # If it does not then this is an output vertex
+        # or this is not a valid graph.
         if len(list(self.flow_graph.successors(vertex))) == 0:
             raise Exception(
                 f"Vertex {vertex} has no flow. "
                 "It is not possible to perform a corrected measure of a qubit without flow. "
                 "Please give this vertex a flow, or use the get_output to perform the necessary corrections."
             )
+
         vertex_flow = list(self.flow_graph.successors(vertex))[0]
+
+        # Check that the flow of the vertex being measured has
+        # not been measured.
         assert not self.vertex_measured[vertex_flow]
 
+        # Add an x correction to the flow of the
+        # measured vertex.
         self.add_classicalexpbox_bit(
             self.qubit_meas_reg[self.vertex_qubit[vertex]][0]
-            ^ self.qubit_x_corr_reg[self.vertex_qubit[vertex_flow]][0],
-            [self.qubit_x_corr_reg[self.vertex_qubit[vertex_flow]][0]],
+            ^ self.qubit_x_corr_reg[vertex_flow][0],
+            [self.qubit_x_corr_reg[vertex_flow][0]],
         )
-
-        for neighbour in self.entanglement_graph.neighbors(n=vertex_flow):
-            if neighbour == vertex:
-                continue
-
-            # Check that the vertex being updated has not been measured
-            assert not self.vertex_measured[neighbour]
-
-            self.add_classicalexpbox_bit(
-                self.qubit_meas_reg[self.vertex_qubit[vertex]][0]
-                ^ self.qubit_z_corr_reg[self.vertex_qubit[neighbour]][0],
-                [self.qubit_z_corr_reg[self.vertex_qubit[neighbour]][0]],
-            )

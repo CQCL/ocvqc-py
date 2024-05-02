@@ -10,19 +10,11 @@ class QubitManager(Circuit):
             qubit: BitRegister(name=f"meas_{i}", size=1)
             for i, qubit in enumerate(self.qubit_list)
         }
-        self.qubit_z_corr_reg = {
-            qubit: BitRegister(name=f"z_corr_{i}", size=1)
-            for i, qubit in enumerate(self.qubit_list)
-        }
 
         super().__init__()
 
-        for meas_reg, z_corr_reg in zip(
-            self.qubit_meas_reg.values(),
-            self.qubit_z_corr_reg.values(),
-        ):
+        for meas_reg in self.qubit_meas_reg.values():
             self.add_c_register(register=meas_reg)
-            self.add_c_register(register=z_corr_reg)
 
     def get_qubit(self) -> Qubit:
         if len(self.qubit_list) == 0:
@@ -33,7 +25,6 @@ class QubitManager(Circuit):
             self.add_qubit(id=qubit)
             self.qubit_initialised[qubit] = True
 
-        self.add_c_setreg(0, self.qubit_z_corr_reg[qubit])
         self.add_c_setreg(0, self.qubit_meas_reg[qubit])
         self.Reset(qubit=qubit)
 

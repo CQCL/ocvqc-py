@@ -22,6 +22,14 @@ class GraphCircuit(QubitManager):
 
         self.qubit_x_corr_reg: List[BitRegister] = []
 
+        self.qubit_z_corr_reg = {
+            qubit: BitRegister(name=f"z_corr_{i}", size=1)
+            for i, qubit in enumerate(self.qubit_list)
+        }
+
+        for z_corr_reg in self.qubit_z_corr_reg.values():
+            self.add_c_register(register=z_corr_reg)
+
     def get_outputs(self) -> Dict[int, Qubit]:
         unmeasured_flow_vertices = [
             vertex

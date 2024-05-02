@@ -20,13 +20,22 @@ class GraphCircuit(QubitManager):
         self.vertex_qubit: List[Qubit] = []
         self.vertex_measured: List[bool] = []
 
-        self.qubit_x_corr_reg: List[BitRegister] = []
+        # We need to save the x correction information long term.
+        # This is why there is one register per vertex, as these
+        # values cannot be overwritten. They are saved long term
+        # as they are needed to calculate z corrections on
+        # neighbouring qubits, which could be needed after the
+        # vertex has been measured.
+        self.vertex_x_corr_reg: List[BitRegister] = []
 
+        # The Z correction is only used as a temporary store of the
+        # correction that should be performed. As such we only need
+        # one per physical qubit. Importantly the Z correction is calculated
+        # from the X correction so does not need to be stored long term.
         self.qubit_z_corr_reg = {
             qubit: BitRegister(name=f"z_corr_{i}", size=1)
             for i, qubit in enumerate(self.qubit_list)
         }
-
         for z_corr_reg in self.qubit_z_corr_reg.values():
             self.add_c_register(register=z_corr_reg)
 
@@ -66,7 +75,7 @@ class GraphCircuit(QubitManager):
         self.flow_graph.add_node(node_for_adding=index)
 
         x_corr_reg = BitRegister(name=f"x_corr_{index}", size=1)
-        self.qubit_x_corr_reg.append(x_corr_reg)
+        self.vertex_x_corr_reg.append(x_corr_reg)
         self.add_c_register(register=x_corr_reg)
 
         return index
@@ -164,15 +173,17 @@ class GraphCircuit(QubitManager):
     def _apply_x_correction(self, vertex: int) -> None:
         self.X(
             self.vertex_qubit[vertex],
-            condition=self.qubit_x_corr_reg[vertex][0],
+            condition=self.vertex_x_corr_reg[vertex][0],
         )
 
     def _get_z_correction(self, vertex: int) -> None:
         self.add_c_setreg(0, self.qubit_z_corr_reg[self.vertex_qubit[vertex]])
 
+        # For all of the neighbours of the given qubit,
+        # sum all of the X corrections performed.
         for neighbour in self.entanglement_graph.neighbors(n=vertex):
             self.add_classicalexpbox_bit(
-                self.qubit_x_corr_reg[neighbour][0]
+                self.vertex_x_corr_reg[neighbour][0]
                 ^ self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0],
                 [self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0]],
             )
@@ -253,6 +264,6 @@ class GraphCircuit(QubitManager):
         # measured vertex.
         self.add_classicalexpbox_bit(
             self.qubit_meas_reg[self.vertex_qubit[vertex]][0]
-            ^ self.qubit_x_corr_reg[vertex_flow][0],
-            [self.qubit_x_corr_reg[vertex_flow][0]],
+            ^ self.vertex_x_corr_reg[vertex_flow][0],
+            [self.vertex_x_corr_reg[vertex_flow][0]],
         )

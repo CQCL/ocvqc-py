@@ -75,4 +75,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: docs_html
-          path: pytket-mbqcpy/build/html
+          path: pytket-mbqc-py/build/html

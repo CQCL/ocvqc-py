@@ -33,9 +33,6 @@ jobs:
       - name: Install pytket-mbqc
         run: pip install pytket-mbqc-py/
 
-      - name: Run Tests
-        run: pytest --cov-report term-missing:skip-covered --cov=pytket-mbqc-py/pytket_mbqc_py/ pytket-mbqc-py/tests/ --durations=10
-
       - name: Type Check
         run: mypy pytket-mbqc-py/pytket_mbqc_py/ --warn-unused-ignores
 
@@ -44,6 +41,10 @@ jobs:
 
       - name: Format Check
         run: ruff format --check
+
+      - name: Run Tests
+        run: pytest --cov-report term-missing:skip-covered --cov=pytket-mbqc-py/pytket_mbqc_py/ pytket-mbqc-py/tests/ --durations=10
+
 
   Build-Documentation:
 
@@ -68,10 +69,10 @@ jobs:
           make html
 
       - name: Check Documentation coverage
-        run: docstr-coverage pytket-mbqc-py
+        run: docstr-coverage pytket-mbqc-py/pytket_mbqc_py
 
       - name: Save documentation
         uses: actions/upload-artifact@v4
         with:
           name: docs_html
-          path: build/html
+          path: pytket-mbqcpy/build/html

@@ -1,3 +1,9 @@
+"""
+Tools for managing Measurement Based Quantum Computation.
+In particular, for managing graph state construction
+and automatically adding measurement corrections.
+"""
+
 from typing import Dict, List, Tuple
 
 import networkx as nx  # type:ignore
@@ -8,10 +14,37 @@ from pytket_mbqc_py.qubit_manager import QubitManager
 
 
 class GraphCircuit(QubitManager):
+    """Class for the automated construction of MBQC computations.
+    In particular only graphs with valid flow can be constructed.
+    Graph state construction and measurement corrections are added
+    automatically. A child of
+    :py:class:`~pytket_mbqc_py.qubit_manager.QubitManager`.
+
+    :ivar entanglement_graph: Graph detailing the graph state entanglement.
+    :ivar flow_graph: Graph describing the flow dependencies of the graph state.
+    :ivar vertex_qubit: List mapping graph vertex to corresponding qubits.
+    :ivar vertex_measured: List indicating if vertex has been measured.
+    :ivar vertex_x_corr_reg: List mapping vertex index to
+        the classical register where the required X correction is stored.
+    :ivar qubit_z_corr_reg: Dictionary mapping qubit to the
+        classical register where the required Z correction is calculated.
+    """
+
+    entanglement_graph: nx.Graph
+    flow_graph: nx.DiGraph
+    vertex_x_corr_reg: List[BitRegister]
+    qubit_z_corr_reg: Dict[Qubit, BitRegister]
+
     def __init__(
         self,
         n_physical_qubits: int,
     ) -> None:
+        """Initialisation method. Creates tools to track
+        the graph state structure and the measurement corrections.
+
+        :param n_physical_qubits: The number of physical qubits available.
+        :type n_physical_qubits: int
+        """
         super().__init__(n_physical_qubits=n_physical_qubits)
 
         self.entanglement_graph = nx.Graph()
@@ -40,15 +73,34 @@ class GraphCircuit(QubitManager):
             self.add_c_register(register=z_corr_reg)
 
     def get_outputs(self) -> Dict[int, Qubit]:
+        """Return the output qubits. Output qubits are those that
+        are unmeasured, and which do not have a flow. This should
+        be treated as the final step in an MBQC computation. Indeed
+        check are made that the state has been appropriately
+        measured. This will also apply the appropriate corrections to
+        the output qubits.
+
+        :raises Exception: Raised if there there are qubits
+            with flow which have not been measured. All
+            qubits with flow must be measured before the MBQC
+            computation can be finalised and the outputs recovered.
+        :return: Dictionary mapping output vertices to physical
+            qubits. These qubits can now be treated as normal circuit
+            qubits.
+        """
+
+        # All qubits with flow must be measured. This is to
+        # ensure that all correction have been made.
         unmeasured_flow_vertices = [
             vertex
-            for vertex in self._vertices_with_flow()
+            for vertex in self._vertices_with_flow
             if not self.vertex_measured[vertex]
         ]
         if len(unmeasured_flow_vertices) > 0:
             raise Exception(
                 "Only output vertices can be unmeasured. "
-                + f"In particular {unmeasured_flow_vertices} have flow but are not measured."
+                + f"In particular {unmeasured_flow_vertices} "
+                + "have flow but are not measured."
             )
 
         # At this point we know that all unmeasured qubits
@@ -67,6 +119,14 @@ class GraphCircuit(QubitManager):
         return output_qubits
 
     def _add_vertex(self, qubit: Qubit) -> int:
+        """Add a new vertex to the graph.
+        This requires that the vertex is added to the
+        entanglement and flow graphs. A register to save
+        the vertex X correction to is also created.
+
+        :param qubit: Qubit to be added.
+        :return: The vertex in the graphs corresponding to this qubit
+        """
         self.vertex_qubit.append(qubit)
         self.vertex_measured.append(False)
 
@@ -81,19 +141,33 @@ class GraphCircuit(QubitManager):
         return index
 
     def add_input_vertex(self) -> Tuple[Qubit, int]:
+        """Add a new input vertex to the graph.
+        This returns the input qubit created.
+        You may perform transformations on this input qubit
+        but all transformations must be completed before
+        any edges are added to this vertex.
+
+        :return: The qubit added, and the corresponding index in the graph.
+        """
         qubit = self.get_qubit()
         index = self._add_vertex(qubit=qubit)
 
         return (qubit, index)
 
     def add_graph_vertex(self) -> int:
+        """Add a new graph vertex.
+
+        :return: The index of the vertex added.
+        """
         qubit = self.get_qubit()
         self.H(qubit)
         index = self._add_vertex(qubit=qubit)
 
         return index
 
+    @property
     def _vertices_with_flow(self) -> List[int]:
+        """List of qubits which have flow."""
         return list(
             set(
                 predecessor
@@ -103,6 +177,31 @@ class GraphCircuit(QubitManager):
         )
 
     def add_edge(self, vertex_one: int, vertex_two: int) -> None:
+        """Add an edge in the graph between the given vertices.
+        This will make a number of checks to ensure that the
+        resulting graph state is valid.
+
+        Note that if vertex_two is the first neighbour of
+        vertex_one then vertex_two will be taken to be the flow
+        of vertex_one.
+
+        :param vertex_one: Source vertex.
+        :param vertex_two: Target vertex.
+        :raises Exception: Raised the edge acts into the past.
+            I.e. if vertex_two is measured before vertex_one.
+            Equivalently if vertex_two < vertex_one
+        :raises Exception: Raised if vertex_one does not exist in the graph.
+        :raises Exception: Raised if vertex_two does not exist in the graph.
+        :raises Exception: Raised if vertex_one or vertex_two
+            has been measured.
+        :raises Exception: Raised if vertex_two is the flow of vertex_one
+            but their are neighbours of vertex_two which are measured
+            before vertex_one. This does not allow correction from
+            vertex_one to propagate to those neighbours.
+        :raises Exception: Raised if an inverse flow of vertex_two
+            is measured after vertex_one. This would not allow corrections
+            from that inverse flow to propagate to vertex_one.
+        """
         if vertex_one > vertex_two:
             raise Exception(
                 f"{vertex_one} is greater than {vertex_two}. "
@@ -122,12 +221,15 @@ class GraphCircuit(QubitManager):
             )
 
         if self.vertex_measured[vertex_one] or self.vertex_measured[vertex_two]:
-            raise Exception("Cannot add edge after measure.")
+            raise Exception(
+                "Cannot add edge after measure."
+                + f"In particular {[vertex for vertex in [vertex_one, vertex_two] if self.vertex_measured[vertex]]} have been measured."
+            )
 
         # If this is the first future of vertex_one then it will be taken to be its flow.
         # If vertex_two is to be the flow of vertex_one than we must check that neighbours of
         # vertex_two are measured after vertex_one.
-        if vertex_one not in self._vertices_with_flow():
+        if vertex_one not in self._vertices_with_flow:
             past_neighbours = [
                 vertex
                 for vertex in self.entanglement_graph.neighbors(n=vertex_two)
@@ -155,7 +257,7 @@ class GraphCircuit(QubitManager):
             )
 
         # If this is the first future of vertex_one then it is taken to be its flow.
-        if vertex_one not in self._vertices_with_flow():
+        if vertex_one not in self._vertices_with_flow:
             self.flow_graph.add_edge(
                 u_of_edge=vertex_one,
                 v_of_edge=vertex_two,
@@ -171,12 +273,24 @@ class GraphCircuit(QubitManager):
         )
 
     def _apply_x_correction(self, vertex: int) -> None:
+        """Apply X correction. This correction is drawn from
+        the x correction register which is altered
+        by the corrected measure method as appropriate.
+
+        :param vertex: The vertex to be corrected.
+        """
         self.X(
             self.vertex_qubit[vertex],
             condition=self.vertex_x_corr_reg[vertex][0],
         )
 
     def _get_z_correction(self, vertex: int) -> None:
+        """Update Z correction register. This correction is calculated
+        using the X corrections that have to be applied to the neighbouring
+        qubits.
+
+        :param vertex: Vertex to be corrected.
+        """
         self.add_c_setreg(0, self.qubit_z_corr_reg[self.vertex_qubit[vertex]])
 
         # For all of the neighbours of the given qubit,
@@ -189,6 +303,12 @@ class GraphCircuit(QubitManager):
             )
 
     def _apply_z_correction(self, vertex: int) -> None:
+        """Apply Z correction on qubit. This correction is calculated
+        using the X corrections that have to be applied to the neighbouring
+        qubits.
+
+        :param vertex: Vertex to be corrected.
+        """
         self._get_z_correction(vertex=vertex)
 
         self.Z(
@@ -197,6 +317,12 @@ class GraphCircuit(QubitManager):
         )
 
     def _apply_classical_z_correction(self, vertex: int) -> None:
+        """Apply Z correction on measurement result. This correction is calculated
+        using the X corrections that have to be applied to the neighbouring
+        qubits.
+
+        :param vertex: Vertex to be corrected.
+        """
         self._get_z_correction(vertex=vertex)
 
         self.add_classicalexpbox_bit(
@@ -206,6 +332,19 @@ class GraphCircuit(QubitManager):
         )
 
     def corrected_measure(self, vertex: int, t_multiple: int = 0) -> None:
+        """Perform a measurement, applying the appropriate corrections.
+        Corrections required on the relevant flow qubit are also updated.
+
+        :param vertex: Vertex to be measured.
+        :param t_multiple: The angle in which to measure, defaults to 0.
+            This defines the rotated hadamard basis to measure in.
+        :type t_multiple: int, optional
+        :raises Exception: Raised if this vertex has already been measured.
+        :raises Exception: Raised if there are vertex in the past of this
+            one which have not been measured.
+        :raises Exception: Raised if this vertex does not have flow.
+            Vertices without flow are output qubits.
+        """
         # Check that the vertex being measured has not already been measured.
         if self.vertex_measured[vertex]:
             raise Exception(

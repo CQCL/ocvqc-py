@@ -273,12 +273,13 @@ class GraphCircuit(QubitManager):
         )
 
     def _get_z_correction_expression(self, vertex: int) -> BitLogicExp:
-        """Update Z correction register. This correction is calculated
-        using the X corrections that have to be applied to the neighbouring
+        """Create logical expression by taking the parity of
+        the X corrections that have to be applied to the neighbouring
         qubits.
 
         :param vertex: Vertex to be corrected.
-        :return:
+        :return: Logical expression calculating the parity
+            of the neighbouring x correction registers.
         """
         return reduce(
             lambda a, b: a ^ b,
@@ -295,10 +296,9 @@ class GraphCircuit(QubitManager):
 
         :param vertex: Vertex to be corrected.
         """
-        condition = self._get_z_correction_expression(vertex=vertex)
         self.Z(
             self.vertex_qubit[vertex],
-            condition=condition,
+            condition=self._get_z_correction_expression(vertex=vertex),
         )
 
     def _apply_classical_z_correction(self, vertex: int) -> None:
@@ -308,9 +308,8 @@ class GraphCircuit(QubitManager):
 
         :param vertex: Vertex to be corrected.
         """
-        expression = self._get_z_correction_expression(vertex=vertex)
         self.add_classicalexpbox_bit(
-            expression=self.qubit_meas_reg[self.vertex_qubit[vertex]][0] ^ expression,
+            expression=self.qubit_meas_reg[self.vertex_qubit[vertex]][0] ^ self._get_z_correction_expression(vertex=vertex),
             target=[self.qubit_meas_reg[self.vertex_qubit[vertex]][0]],
         )
 

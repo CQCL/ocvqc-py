@@ -63,13 +63,13 @@ jobs:
       - name: Install pytket-benchmarking
         run: pip install pytket-mbqc-py/
 
+      - name: Check Documentation coverage
+        run: docstr-coverage pytket-mbqc-py/pytket_mbqc_py
+
       - name: Build documentation
         run: |
           cd pytket-mbqc-py
           make html
-
-      - name: Check Documentation coverage
-        run: docstr-coverage pytket-mbqc-py/pytket_mbqc_py
 
       - name: Save documentation
         uses: actions/upload-artifact@v4

@@ -17,22 +17,17 @@ class GraphCircuit(QubitManager):
     """Class for the automated construction of MBQC computations.
     In particular only graphs with valid flow can be constructed.
     Graph state construction and measurement corrections are added
-    automatically. A child of :py:class:`~pytket_mbqc_py.qubit_manager.QubitManager`.
+    automatically. A child of
+    :py:class:`~pytket_mbqc_py.qubit_manager.QubitManager`.
 
-    :ivar entanglement_graph: Graph detailing the
-        graph state entanglement.
-    :ivar flow_graph: Graph describing the flow
-        dependencies of the graph state.
-    :ivar vertex_qubit: List mapping graph vertex to corresponding
-        qubits.
-    :ivar vertex_measured: List indicating if vertex has been
-        measured.
+    :ivar entanglement_graph: Graph detailing the graph state entanglement.
+    :ivar flow_graph: Graph describing the flow dependencies of the graph state.
+    :ivar vertex_qubit: List mapping graph vertex to corresponding qubits.
+    :ivar vertex_measured: List indicating if vertex has been measured.
     :ivar vertex_x_corr_reg: List mapping vertex index to
-        the classical register where the required X correction is
-        stored.
+        the classical register where the required X correction is stored.
     :ivar qubit_z_corr_reg: Dictionary mapping qubit to the
-        classical register where the required Z correction
-        is calculated.
+        classical register where the required Z correction is calculated.
     """
 
     entanglement_graph: nx.Graph
@@ -104,7 +99,8 @@ class GraphCircuit(QubitManager):
         if len(unmeasured_flow_vertices) > 0:
             raise Exception(
                 "Only output vertices can be unmeasured. "
-                + f"In particular {unmeasured_flow_vertices} have flow but are not measured."
+                + f"In particular {unmeasured_flow_vertices} "
+                + "have flow but are not measured."
             )
 
         # At this point we know that all unmeasured qubits
@@ -129,8 +125,7 @@ class GraphCircuit(QubitManager):
         the vertex X correction to is also created.
 
         :param qubit: Qubit to be added.
-        :return: The vertex in the graphs
-            corresponding to this qubit
+        :return: The vertex in the graphs corresponding to this qubit
         """
         self.vertex_qubit.append(qubit)
         self.vertex_measured.append(False)
@@ -152,8 +147,7 @@ class GraphCircuit(QubitManager):
         but all transformations must be completed before
         any edges are added to this vertex.
 
-        :return: The qubit added, and the corresponding
-            index in the graph.
+        :return: The qubit added, and the corresponding index in the graph.
         """
         qubit = self.get_qubit()
         index = self._add_vertex(qubit=qubit)
@@ -196,10 +190,8 @@ class GraphCircuit(QubitManager):
         :raises Exception: Raised the edge acts into the past.
             I.e. if vertex_two is measured before vertex_one.
             Equivalently if vertex_two < vertex_one
-        :raises Exception: Raised if vertex_one does not exist
-            in the graph.
-        :raises Exception: Raised if vertex_two does not exist
-            in the graph.
+        :raises Exception: Raised if vertex_one does not exist in the graph.
+        :raises Exception: Raised if vertex_two does not exist in the graph.
         :raises Exception: Raised if vertex_one or vertex_two
             has been measured.
         :raises Exception: Raised if vertex_two is the flow of vertex_one

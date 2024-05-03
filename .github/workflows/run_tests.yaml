@@ -44,3 +44,34 @@ jobs:
 
       - name: Format Check
         run: ruff format --check
+
+  Build-Documentation:
+
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout pytket-mbqc
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install pytket-benchmarking
+        run: pip install pytket-mbqc-py/
+
+      - name: Build documentation
+        run: |
+          cd pytket-mbqc-py
+          make html
+
+      - name: Check Documentation coverage
+        run: docstr-coverage pytket-mbqc-py
+
+      - name: Save documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs_html
+          path: build/html

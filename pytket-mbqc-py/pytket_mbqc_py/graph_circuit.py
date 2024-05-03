@@ -3,6 +3,7 @@ Tools for managing Measurement Based Quantum Computation.
 In particular, for managing graph state construction
 and automatically adding measurement corrections.
 """
+
 from typing import Dict, List, Tuple
 
 import networkx as nx  # type:ignore
@@ -172,8 +173,7 @@ class GraphCircuit(QubitManager):
 
     @property
     def _vertices_with_flow(self) -> List[int]:
-        """List of qubits which have flow.
-        """
+        """List of qubits which have flow."""
         return list(
             set(
                 predecessor
@@ -192,9 +192,7 @@ class GraphCircuit(QubitManager):
         of vertex_one.
 
         :param vertex_one: Source vertex.
-        :type vertex_one: int
         :param vertex_two: Target vertex.
-        :type vertex_two: int
         :raises Exception: Raised the edge acts into the past.
             I.e. if vertex_two is measured before vertex_one.
             Equivalently if vertex_two < vertex_one
@@ -283,12 +281,24 @@ class GraphCircuit(QubitManager):
         )
 
     def _apply_x_correction(self, vertex: int) -> None:
+        """Apply X correction. This correction is drawn from
+        the x correction register which is altered
+        by the corrected measure method as appropriate.
+
+        :param vertex: The vertex to be corrected.
+        """
         self.X(
             self.vertex_qubit[vertex],
             condition=self.vertex_x_corr_reg[vertex][0],
         )
 
     def _get_z_correction(self, vertex: int) -> None:
+        """Update Z correction register. This correction is calculated
+        using the X corrections that have to be applied to the neighbouring
+        qubits.
+
+        :param vertex: Vertex to be corrected.
+        """
         self.add_c_setreg(0, self.qubit_z_corr_reg[self.vertex_qubit[vertex]])
 
         # For all of the neighbours of the given qubit,
@@ -301,6 +311,12 @@ class GraphCircuit(QubitManager):
             )
 
     def _apply_z_correction(self, vertex: int) -> None:
+        """Apply Z correction on qubit. This correction is calculated
+        using the X corrections that have to be applied to the neighbouring
+        qubits.
+
+        :param vertex: Vertex to be corrected.
+        """
         self._get_z_correction(vertex=vertex)
 
         self.Z(
@@ -309,6 +325,12 @@ class GraphCircuit(QubitManager):
         )
 
     def _apply_classical_z_correction(self, vertex: int) -> None:
+        """Apply Z correction on measurement result. This correction is calculated
+        using the X corrections that have to be applied to the neighbouring
+        qubits.
+
+        :param vertex: Vertex to be corrected.
+        """
         self._get_z_correction(vertex=vertex)
 
         self.add_classicalexpbox_bit(
@@ -318,6 +340,19 @@ class GraphCircuit(QubitManager):
         )
 
     def corrected_measure(self, vertex: int, t_multiple: int = 0) -> None:
+        """Perform a measurement, applying the appropriate corrections.
+        Corrections required on the relevant flow qubit are also updated.
+
+        :param vertex: Vertex to be measured.
+        :param t_multiple: The angle in which to measure, defaults to 0.
+            This defines the rotated hadamard basis to measure in.
+        :type t_multiple: int, optional
+        :raises Exception: Raised if this vertex has already been measured.
+        :raises Exception: Raised if there are vertex in the past of this
+            one which have not been measured.
+        :raises Exception: Raised if this vertex does not have flow.
+            Vertices without flow are output qubits.
+        """
         # Check that the vertex being measured has not already been measured.
         if self.vertex_measured[vertex]:
             raise Exception(

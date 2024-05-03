@@ -2,10 +2,11 @@
 Utilities for managing qubits.
 In particular for measuring and reusing qubits.
 """
+
+from typing import Dict, List
+
 from pytket import Circuit
 from pytket.unit_id import BitRegister, Qubit
-
-from typing import List, Dict
 
 
 class QubitManager(Circuit):
@@ -70,8 +71,7 @@ class QubitManager(Circuit):
 
     @property
     def physical_qubits_used(self) -> List[Qubit]:
-        """The physical qubits which have been used.
-        """
+        """The physical qubits which have been used."""
         return [
             qubit
             for qubit, initialised in self.qubit_initialised.items()

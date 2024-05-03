@@ -4,10 +4,12 @@ In particular, for managing graph state construction
 and automatically adding measurement corrections.
 """
 
+from functools import reduce
 from typing import Dict, List, Tuple
 
 import networkx as nx  # type:ignore
 from pytket import Qubit
+from pytket.circuit.logic_exp import BitLogicExp
 from pytket.unit_id import BitRegister
 
 from pytket_mbqc_py.qubit_manager import QubitManager
@@ -26,14 +28,11 @@ class GraphCircuit(QubitManager):
     :ivar vertex_measured: List indicating if vertex has been measured.
     :ivar vertex_x_corr_reg: List mapping vertex index to
         the classical register where the required X correction is stored.
-    :ivar qubit_z_corr_reg: Dictionary mapping qubit to the
-        classical register where the required Z correction is calculated.
     """
 
     entanglement_graph: nx.Graph
     flow_graph: nx.DiGraph
     vertex_x_corr_reg: List[BitRegister]
-    qubit_z_corr_reg: Dict[Qubit, BitRegister]
 
     def __init__(
         self,
@@ -60,17 +59,6 @@ class GraphCircuit(QubitManager):
         # neighbouring qubits, which could be needed after the
         # vertex has been measured.
         self.vertex_x_corr_reg: List[BitRegister] = []
-
-        # The Z correction is only used as a temporary store of the
-        # correction that should be performed. As such we only need
-        # one per physical qubit. Importantly the Z correction is calculated
-        # from the X correction so does not need to be stored long term.
-        self.qubit_z_corr_reg = {
-            qubit: BitRegister(name=f"z_corr_{i}", size=1)
-            for i, qubit in enumerate(self.qubit_list)
-        }
-        for z_corr_reg in self.qubit_z_corr_reg.values():
-            self.add_c_register(register=z_corr_reg)
 
     def get_outputs(self) -> Dict[int, Qubit]:
         """Return the output qubits. Output qubits are those that
@@ -284,23 +272,22 @@ class GraphCircuit(QubitManager):
             condition=self.vertex_x_corr_reg[vertex][0],
         )
 
-    def _get_z_correction(self, vertex: int) -> None:
-        """Update Z correction register. This correction is calculated
-        using the X corrections that have to be applied to the neighbouring
+    def _get_z_correction_expression(self, vertex: int) -> BitLogicExp:
+        """Create logical expression by taking the parity of
+        the X corrections that have to be applied to the neighbouring
         qubits.
 
         :param vertex: Vertex to be corrected.
+        :return: Logical expression calculating the parity
+            of the neighbouring x correction registers.
         """
-        self.add_c_setreg(0, self.qubit_z_corr_reg[self.vertex_qubit[vertex]])
-
-        # For all of the neighbours of the given qubit,
-        # sum all of the X corrections performed.
-        for neighbour in self.entanglement_graph.neighbors(n=vertex):
-            self.add_classicalexpbox_bit(
+        return reduce(
+            lambda a, b: a ^ b,
+            [
                 self.vertex_x_corr_reg[neighbour][0]
-                ^ self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0],
-                [self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0]],
-            )
+                for neighbour in self.entanglement_graph.neighbors(n=vertex)
+            ],
+        )
 
     def _apply_z_correction(self, vertex: int) -> None:
         """Apply Z correction on qubit. This correction is calculated
@@ -309,11 +296,9 @@ class GraphCircuit(QubitManager):
 
         :param vertex: Vertex to be corrected.
         """
-        self._get_z_correction(vertex=vertex)
-
         self.Z(
             self.vertex_qubit[vertex],
-            condition=self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0],
+            condition=self._get_z_correction_expression(vertex=vertex),
         )
 
     def _apply_classical_z_correction(self, vertex: int) -> None:
@@ -323,12 +308,10 @@ class GraphCircuit(QubitManager):
 
         :param vertex: Vertex to be corrected.
         """
-        self._get_z_correction(vertex=vertex)
-
         self.add_classicalexpbox_bit(
-            self.qubit_meas_reg[self.vertex_qubit[vertex]][0]
-            ^ self.qubit_z_corr_reg[self.vertex_qubit[vertex]][0],
-            [self.qubit_meas_reg[self.vertex_qubit[vertex]][0]],
+            expression=self.qubit_meas_reg[self.vertex_qubit[vertex]][0]
+            ^ self._get_z_correction_expression(vertex=vertex),
+            target=[self.qubit_meas_reg[self.vertex_qubit[vertex]][0]],
         )
 
     def corrected_measure(self, vertex: int, t_multiple: int = 0) -> None:

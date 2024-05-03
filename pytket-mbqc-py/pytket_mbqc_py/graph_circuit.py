@@ -309,7 +309,8 @@ class GraphCircuit(QubitManager):
         :param vertex: Vertex to be corrected.
         """
         self.add_classicalexpbox_bit(
-            expression=self.qubit_meas_reg[self.vertex_qubit[vertex]][0] ^ self._get_z_correction_expression(vertex=vertex),
+            expression=self.qubit_meas_reg[self.vertex_qubit[vertex]][0]
+            ^ self._get_z_correction_expression(vertex=vertex),
             target=[self.qubit_meas_reg[self.vertex_qubit[vertex]][0]],
         )
 

@@ -77,6 +77,13 @@ class QubitManager(Circuit):
             for qubit, initialised in self.qubit_initialised.items()
             if initialised
         ]
+    
+    @property
+    def initialised_qubits(self) -> List[Qubit]:
+        return [
+            qubit for qubit, initialised in self.qubit_initialised.items()
+            if initialised
+        ]
 
     def managed_measure(self, qubit: Qubit) -> None:
         """Measure the given qubit, storing the result in the
@@ -85,6 +92,13 @@ class QubitManager(Circuit):
 
         :param qubit: The qubit to be measured.
         :type qubit: Qubit
+
+        :raises Exception: Raised if the qubit to be measured does
+            not belong to the circuit.
         """
+        if not self.qubit_initialised[qubit]:
+            raise Exception(
+                f"The qubit {qubit} has not been initialised."
+            )
         self.qubit_list.insert(0, qubit)
         self.Measure(qubit=qubit, bit=self.qubit_meas_reg[qubit][0])

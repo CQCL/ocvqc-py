@@ -240,8 +240,8 @@ class GraphCircuit(QubitManager):
         ):
             raise Exception(
                 "This does not define a valid flow. "
-                f"In particular {vertex_two} is the flow of {self.flow_graph.predecessors(vertex_two)}, "
-                f"some of which are measured before {vertex_one}."
+                f"In particular {vertex_two} is the flow of {list(self.flow_graph.predecessors(vertex_two))}, "
+                f"some of which are measured after {vertex_one}."
             )
 
         # If this is the first future of vertex_one then it is taken to be its flow.
@@ -281,12 +281,18 @@ class GraphCircuit(QubitManager):
         :return: Logical expression calculating the parity
             of the neighbouring x correction registers.
         """
+
+        neighbour_reg_list = [
+            self.vertex_x_corr_reg[neighbour][0]
+            for neighbour in self.entanglement_graph.neighbors(n=vertex)
+        ]
+
+        # This happens of this vertex has no neighbours.
+        if len(neighbour_reg_list) == 0:
+            return None
+
         return reduce(
-            lambda a, b: a ^ b,
-            [
-                self.vertex_x_corr_reg[neighbour][0]
-                for neighbour in self.entanglement_graph.neighbors(n=vertex)
-            ],
+            lambda a, b: a ^ b, neighbour_reg_list
         )
 
     def _apply_z_correction(self, vertex: int) -> None:
@@ -296,10 +302,12 @@ class GraphCircuit(QubitManager):
 
         :param vertex: Vertex to be corrected.
         """
-        self.Z(
-            self.vertex_qubit[vertex],
-            condition=self._get_z_correction_expression(vertex=vertex),
-        )
+        condition = self._get_z_correction_expression(vertex=vertex)
+        if condition is not None:
+            self.Z(
+                self.vertex_qubit[vertex],
+                condition=condition,
+            )
 
     def _apply_classical_z_correction(self, vertex: int) -> None:
         """Apply Z correction on measurement result. This correction is calculated
@@ -308,11 +316,12 @@ class GraphCircuit(QubitManager):
 
         :param vertex: Vertex to be corrected.
         """
-        self.add_classicalexpbox_bit(
-            expression=self.qubit_meas_reg[self.vertex_qubit[vertex]][0]
-            ^ self._get_z_correction_expression(vertex=vertex),
-            target=[self.qubit_meas_reg[self.vertex_qubit[vertex]][0]],
-        )
+        condition = self._get_z_correction_expression(vertex=vertex)
+        if condition is not None:
+            self.add_classicalexpbox_bit(
+                expression=self.qubit_meas_reg[self.vertex_qubit[vertex]][0] ^ condition,
+                target=[self.qubit_meas_reg[self.vertex_qubit[vertex]][0]],
+            )
 
     def corrected_measure(self, vertex: int, t_multiple: int = 0) -> None:
         """Perform a measurement, applying the appropriate corrections.

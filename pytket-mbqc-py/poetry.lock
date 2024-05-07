@@ -1847,13 +1847,13 @@ test = ["codecov (>=2.1)", "pytest (>=7.2)", "pytest-cov (>=4.0)"]
 
 [[package]]
 name = "notebook"
-version = "6.5.6"
+version = "6.5.7"
 description = "A web-based notebook environment for interactive computing"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "notebook-6.5.6-py3-none-any.whl", hash = "sha256:c1e2eb2e3b6079a0552a04974883a48d04c3c05792170d64a4b23d707d453181"},
-    {file = "notebook-6.5.6.tar.gz", hash = "sha256:b4625a4b7a597839dd3156b140d5ba2c7123761f98245a3290f67a8b8ee048d9"},
+    {file = "notebook-6.5.7-py3-none-any.whl", hash = "sha256:a6afa9a4ff4d149a0771ff8b8c881a7a73b3835f9add0606696d6e9d98ac1cd0"},
+    {file = "notebook-6.5.7.tar.gz", hash = "sha256:04eb9011dfac634fbd4442adaf0a8c27cd26beef831fe1d19faf930c327768e4"},
 ]
 
 [package.dependencies]
@@ -1868,7 +1868,7 @@ nbconvert = ">=5"
 nbformat = "*"
 nest-asyncio = ">=1.5"
 prometheus-client = "*"
-pyzmq = ">=17,<25"
+pyzmq = ">=17"
 Send2Trash = ">=1.8.0"
 terminado = ">=0.8.3"
 tornado = ">=6.1"
@@ -3737,4 +3737,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "<3.12,>=3.10"
-content-hash = "68f09d232c471ea54e4fbbab242a227bf192a06511065c0eeb4d5fdb9ea0e7cb"
+content-hash = "5222433dfc04c0d0c0bf7c9005f107c74799a11156d4ff353cec22eab43a78ba"

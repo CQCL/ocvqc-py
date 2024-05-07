@@ -2574,19 +2574,19 @@ zx = ["autoray (>=0.6.1)", "quimb (>=1.8,<2.0)"]
 
 [[package]]
 name = "pytket-pecos"
-version = "0.1.24"
+version = "0.1.25"
 description = "This package enables emulation of pytket circuits using the PECOS emulator."
 optional = false
 python-versions = "*"
 files = [
-    {file = "pytket_pecos-0.1.24-py2.py3-none-any.whl", hash = "sha256:6785dbeb4dea1fd7653ac60757cc874b31a4d1a258f96efb2df882e86e6df8d9"},
-    {file = "pytket_pecos-0.1.24.tar.gz", hash = "sha256:65ee51762b08ba80e60724ef6467fa73ea91ef68e55fb1e4da2cb9df7be1d93c"},
+    {file = "pytket_pecos-0.1.25-py2.py3-none-any.whl", hash = "sha256:28d67e31a58f726b579f7b3f5542eb01d956fa53b62070a6f2b3f1f245e8cd66"},
+    {file = "pytket_pecos-0.1.25.tar.gz", hash = "sha256:4047ee257c88a6cab120b35dc65a211b9fdf564b9a692e680fb72c2c56b5f213"},
 ]
 
 [package.dependencies]
-pytket = ">=1.26.0"
+pytket = ">=1.27.0"
 pytket-phir = ">=0.7.0"
-quantum-pecos = {version = ">=0.5.0dev10", extras = ["simulators", "wasmtime"]}
+quantum-pecos = {version = ">=0.5.0dev11", extras = ["simulators", "wasmtime"]}
 
 [[package]]
 name = "pytket-phir"
@@ -2834,13 +2834,13 @@ py = {version = "*", markers = "implementation_name == \"pypy\""}
 
 [[package]]
 name = "quantum-pecos"
-version = "0.5.0.dev10"
+version = "0.5.0.dev11"
 description = "PECOS is a library/framework for the evaluation, study, and design of QEC protocols. It also provides the ability to study and evaluate the performance advanced hybrid quantum/classical compute execution models for NISQ algorithms and beyond."
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "quantum-pecos-0.5.0.dev10.tar.gz", hash = "sha256:96e792833fe929df4703abc0fc0d58e9e43dff1451463dfebf3d23586e875ad1"},
-    {file = "quantum_pecos-0.5.0.dev10-py2.py3-none-any.whl", hash = "sha256:c01a97704430e9759ccf0bfa31764537b7a57ae948aea214e543ef251c7cb0b6"},
+    {file = "quantum_pecos-0.5.0.dev11-py2.py3-none-any.whl", hash = "sha256:6f5b520b7a1df31b6f0a3bed40ceb3ef99ea36348c406eecb74d6d35876e66d7"},
+    {file = "quantum_pecos-0.5.0.dev11.tar.gz", hash = "sha256:a997e8b415e96a9050027011ab69e8b7991825768366c92b61b9ca57e980f18f"},
 ]
 
 [package.dependencies]
@@ -3737,4 +3737,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "<3.12,>=3.10"
-content-hash = "5222433dfc04c0d0c0bf7c9005f107c74799a11156d4ff353cec22eab43a78ba"
+content-hash = "c398a9263e0d01d2a6835af2243d70322a0d9a8236918459e94e0626e915ef40"

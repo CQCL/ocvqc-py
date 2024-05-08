@@ -144,6 +144,9 @@ class GraphCircuit(RandomRegisterManager):
 
         :param qubit: Qubit to be added.
         :return: The vertex in the graphs corresponding to this qubit
+
+        :raises Exception: Raised if an insufficient number of random
+            registers were initialised.
         """
         self.vertex_qubit.append(qubit)
         self.vertex_measured.append(False)
@@ -155,6 +158,11 @@ class GraphCircuit(RandomRegisterManager):
         x_corr_reg = BitRegister(name=f"x_corr_{index}", size=1)
         self.vertex_x_corr_reg.append(x_corr_reg)
         self.add_c_register(register=x_corr_reg)
+
+        if index >= len(self.vertex_random_reg):
+            raise Exception(
+                "An insufficient number of random registers were initialised."
+            )
 
         return index
 

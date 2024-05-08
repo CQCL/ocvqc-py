@@ -188,6 +188,7 @@ def test_large_cnot_block():
         n_physical_qubits=n_physical_qubits,
         input_state=input_state,
         n_layers=n_layers,
+        n_registers=40,
     )
 
     output_vertex_quibts = circuit.get_outputs()

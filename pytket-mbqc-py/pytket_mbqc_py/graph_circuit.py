@@ -12,10 +12,10 @@ from pytket import Qubit
 from pytket.circuit.logic_exp import BitLogicExp
 from pytket.unit_id import BitRegister
 
-from pytket_mbqc_py.qubit_manager import QubitManager
+from pytket_mbqc_py.random_register_manager import RandomRegisterManager
 
 
-class GraphCircuit(QubitManager):
+class GraphCircuit(RandomRegisterManager):
     """Class for the automated construction of MBQC computations.
     In particular only graphs with valid flow can be constructed.
     Graph state construction and measurement corrections are added

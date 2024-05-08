@@ -77,11 +77,13 @@ class QubitManager(Circuit):
             for qubit, initialised in self.qubit_initialised.items()
             if initialised
         ]
-    
+
     @property
     def initialised_qubits(self) -> List[Qubit]:
+        """Qubits which have been initialised."""
         return [
-            qubit for qubit, initialised in self.qubit_initialised.items()
+            qubit
+            for qubit, initialised in self.qubit_initialised.items()
             if initialised
         ]
 
@@ -97,8 +99,6 @@ class QubitManager(Circuit):
             not belong to the circuit.
         """
         if not self.qubit_initialised[qubit]:
-            raise Exception(
-                f"The qubit {qubit} has not been initialised."
-            )
+            raise Exception(f"The qubit {qubit} has not been initialised.")
         self.qubit_list.insert(0, qubit)
         self.Measure(qubit=qubit, bit=self.qubit_meas_reg[qubit][0])

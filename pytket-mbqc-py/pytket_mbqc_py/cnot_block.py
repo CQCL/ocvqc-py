@@ -23,6 +23,7 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
         n_physical_qubits: int,
         input_state: Tuple[int],
         n_layers: int,
+        n_registers: int,
     ) -> None:
         """Initialisation method.
 
@@ -56,7 +57,10 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
             [[] for _ in range(n_rows)] for _ in range(n_layers)
         ]
 
-        super().__init__(n_physical_qubits=n_physical_qubits)
+        super().__init__(
+            n_physical_qubits=n_physical_qubits,
+            n_registers=n_registers,
+        )
 
         for layer in range(n_layers):
             # If this is the first layer then the control qubit of the first row needs

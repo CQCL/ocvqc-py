@@ -5,7 +5,7 @@ and automatically adding measurement corrections.
 """
 
 from functools import reduce
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import networkx as nx  # type:ignore
 from pytket import Qubit
@@ -20,7 +20,7 @@ class GraphCircuit(RandomRegisterManager):
     In particular only graphs with valid flow can be constructed.
     Graph state construction and measurement corrections are added
     automatically. A child of
-    :py:class:`~pytket_mbqc_py.qubit_manager.QubitManager`.
+    :py:class:`~pytket_mbqc_py.qubit_manager.RandomRegisterManager`.
 
     :ivar entanglement_graph: Graph detailing the graph state entanglement.
     :ivar flow_graph: Graph describing the flow dependencies of the graph state.
@@ -28,6 +28,8 @@ class GraphCircuit(RandomRegisterManager):
     :ivar vertex_measured: List indicating if vertex has been measured.
     :ivar vertex_x_corr_reg: List mapping vertex index to
         the classical register where the required X correction is stored.
+    :ivar vertex_random_reg: List mapping vertex to the corresponding
+        register of random bits.
     """
 
     entanglement_graph: nx.Graph
@@ -37,12 +39,14 @@ class GraphCircuit(RandomRegisterManager):
     def __init__(
         self,
         n_physical_qubits: int,
+        n_registers: int,
     ) -> None:
         """Initialisation method. Creates tools to track
         the graph state structure and the measurement corrections.
 
         :param n_physical_qubits: The number of physical qubits available.
-        :type n_physical_qubits: int
+        :n_registers: The number of random registers to generate. Defaults
+            to 100 random registers.
         """
         super().__init__(n_physical_qubits=n_physical_qubits)
 
@@ -59,6 +63,11 @@ class GraphCircuit(RandomRegisterManager):
         # neighbouring qubits, which could be needed after the
         # vertex has been measured.
         self.vertex_x_corr_reg: List[BitRegister] = []
+
+        self.vertex_random_reg = list(
+            self.generate_random_registers(n_registers=n_registers)
+        )
+        self.add_barrier(units=self.qubits)
 
     def get_outputs(self) -> Dict[int, Qubit]:
         """Return the output qubits. Output qubits are those that
@@ -101,6 +110,27 @@ class GraphCircuit(RandomRegisterManager):
 
         # We need to correct all unmeasured qubits.
         for vertex in output_qubits.keys():
+            self.T(
+                self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][0]
+            )
+            self.S(
+                self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][0]
+            )
+            self.Z(
+                self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][0]
+            )
+
+            self.S(
+                self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][1]
+            )
+            self.Z(
+                self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][1]
+            )
+
+            self.Z(
+                self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][2]
+            )
+
             self._apply_x_correction(vertex=vertex)
             self._apply_z_correction(vertex=vertex)
 
@@ -140,6 +170,10 @@ class GraphCircuit(RandomRegisterManager):
         qubit = self.get_qubit()
         index = self._add_vertex(qubit=qubit)
 
+        # In the case of input qubits, the initialisation is not random.
+        # As such the measurement angle does not need to be corrected.
+        self.add_c_setreg(0, self.vertex_random_reg[index])
+
         return (qubit, index)
 
     def add_graph_vertex(self) -> int:
@@ -150,6 +184,10 @@ class GraphCircuit(RandomRegisterManager):
         qubit = self.get_qubit()
         self.H(qubit)
         index = self._add_vertex(qubit=qubit)
+
+        self.T(qubit, condition=self.vertex_random_reg[index][0])
+        self.S(qubit, condition=self.vertex_random_reg[index][1])
+        self.Z(qubit, condition=self.vertex_random_reg[index][2])
 
         return index
 
@@ -272,7 +310,7 @@ class GraphCircuit(RandomRegisterManager):
             condition=self.vertex_x_corr_reg[vertex][0],
         )
 
-    def _get_z_correction_expression(self, vertex: int) -> BitLogicExp:
+    def _get_z_correction_expression(self, vertex: int) -> Union[None, BitLogicExp]:
         """Create logical expression by taking the parity of
         the X corrections that have to be applied to the neighbouring
         qubits.
@@ -291,9 +329,7 @@ class GraphCircuit(RandomRegisterManager):
         if len(neighbour_reg_list) == 0:
             return None
 
-        return reduce(
-            lambda a, b: a ^ b, neighbour_reg_list
-        )
+        return reduce(lambda a, b: a ^ b, neighbour_reg_list)
 
     def _apply_z_correction(self, vertex: int) -> None:
         """Apply Z correction on qubit. This correction is calculated
@@ -319,7 +355,8 @@ class GraphCircuit(RandomRegisterManager):
         condition = self._get_z_correction_expression(vertex=vertex)
         if condition is not None:
             self.add_classicalexpbox_bit(
-                expression=self.qubit_meas_reg[self.vertex_qubit[vertex]][0] ^ condition,
+                expression=self.qubit_meas_reg[self.vertex_qubit[vertex]][0]
+                ^ condition,
                 target=[self.qubit_meas_reg[self.vertex_qubit[vertex]][0]],
             )
 
@@ -350,6 +387,15 @@ class GraphCircuit(RandomRegisterManager):
                 + f"Vertices {[vertex + i for i, measured in enumerate(self.vertex_measured[vertex:]) if measured]} "
                 + f"are in the future of {vertex} and have already been measured."
             )
+
+        self.T(self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][0])
+        self.S(self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][0])
+        self.Z(self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][0])
+
+        self.S(self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][1])
+        self.Z(self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][1])
+
+        self.Z(self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][2])
 
         # This is actually optional for graph vertices
         # as the X correction commutes with the hadamard

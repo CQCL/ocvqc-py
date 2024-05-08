@@ -12,6 +12,7 @@ Welcome to pytket-mbqc's documentation!
 
    qubit_manager
    graph_circuit
+   random_register_manager
 
 
 

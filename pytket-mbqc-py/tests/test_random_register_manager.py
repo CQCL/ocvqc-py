@@ -1,16 +1,17 @@
-from pytket_mbqc_py import RandomRegisterManager
-from pytket.circuit.display import render_circuit_jupyter
-from pytket.extensions.quantinuum import QuantinuumBackend, QuantinuumAPIOffline
 from itertools import product
+
+from pytket.circuit.display import render_circuit_jupyter
+from pytket.extensions.quantinuum import QuantinuumAPIOffline, QuantinuumBackend
+
+from pytket_mbqc_py import RandomRegisterManager
 
 
 def test_random_register_manager():
-
     # Here we test a total of 15 random bits generated on 2 qubits.
     # Note that this mean one of the qubits must be used more than the other.
     rand_reg_mngr = RandomRegisterManager(n_physical_qubits=2)
-    n_bits_per_reg=3
-    n_registers=5
+    n_bits_per_reg = 3
+    n_registers = 5
     reg_list = list(
         rand_reg_mngr.generate_random_registers(
             n_registers=n_registers,
@@ -23,8 +24,8 @@ def test_random_register_manager():
     assert all(reg.size == n_bits_per_reg for reg in reg_list)
 
     api_offline = QuantinuumAPIOffline()
-    backend = QuantinuumBackend(device_name="H1-1LE", api_handler = api_offline)
-    n_shots=100
+    backend = QuantinuumBackend(device_name="H1-1LE", api_handler=api_offline)
+    n_shots = 100
 
     compiled_circuit = backend.get_compiled_circuit(rand_reg_mngr)
     result = backend.run_circuit(
@@ -40,6 +41,6 @@ def test_random_register_manager():
     for cbits in reg_list:
         counts = result.get_counts(cbits=cbits)
         assert all(
-            abs(counts[bit_string] - (n_shots / (2**n_bits_per_reg))) < (n_shots ** 0.5)
-            for bit_string in product([0,1], repeat=n_bits_per_reg)
+            abs(counts[bit_string] - (n_shots / (2**n_bits_per_reg))) < (n_shots**0.5)
+            for bit_string in product([0, 1], repeat=n_bits_per_reg)
         )

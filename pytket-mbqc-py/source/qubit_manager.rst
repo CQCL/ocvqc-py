@@ -12,3 +12,5 @@ Qubit Manager
     .. automethod:: QubitManager.managed_measure
 
     .. autoproperty:: QubitManager.physical_qubits_used
+
+    .. autoproperty:: QubitManager.initialised_qubits

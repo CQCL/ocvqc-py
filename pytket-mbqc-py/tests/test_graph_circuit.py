@@ -6,7 +6,7 @@ from pytket_mbqc_py import CNOTBlocksGraphCircuit, GraphCircuit
 
 
 def test_plus_state():
-    circuit = GraphCircuit(n_physical_qubits=2)
+    circuit = GraphCircuit(n_physical_qubits=2, n_registers=3)
 
     input_qubit, vertex_one = circuit.add_input_vertex()
     circuit.H(input_qubit)
@@ -36,7 +36,10 @@ def test_plus_state():
 
 
 def test_x_gate():
-    circuit = GraphCircuit(n_physical_qubits=3)
+    circuit = GraphCircuit(
+        n_physical_qubits=3,
+        n_registers=3,
+    )
 
     _, vertex_one = circuit.add_input_vertex()
 
@@ -74,7 +77,10 @@ def test_x_gate():
     [((0, 0), (0, 0)), ((0, 1), (0, 1)), ((1, 0), (1, 1)), ((1, 1), (1, 0))],
 )
 def test_cnot(input_state, output_state):
-    circuit = GraphCircuit(n_physical_qubits=5)
+    circuit = GraphCircuit(
+        n_physical_qubits=5,
+        n_registers=10,
+    )
 
     target_qubit, vertex_one = circuit.add_input_vertex()
     if input_state[1]:
@@ -149,6 +155,7 @@ def test_cnot_block(input_state, output_state, n_layers):
         n_physical_qubits=n_physical_qubits,
         input_state=input_state,
         n_layers=n_layers,
+        n_registers=40,
     )
 
     output_vertex_quibts = circuit.get_outputs()
@@ -203,7 +210,7 @@ def test_large_cnot_block():
 
 
 def test_3_q_ghz():
-    graph_circuit = GraphCircuit(n_physical_qubits=5)
+    graph_circuit = GraphCircuit(n_physical_qubits=5, n_registers=5)
 
     input_quibt, input_vertex = graph_circuit.add_input_vertex()
 
@@ -255,7 +262,10 @@ def test_3_q_ghz():
     [((0, 0), (0, 0)), ((0, 1), (0, 1)), ((1, 0), (1, 1)), ((1, 1), (1, 0))],
 )
 def test_cnot_early_measure(input_state, output_state):
-    circuit = GraphCircuit(n_physical_qubits=3)
+    circuit = GraphCircuit(
+        n_physical_qubits=3,
+        n_registers=10,
+    )
 
     target_qubit, vertex_one = circuit.add_input_vertex()
     if input_state[1]:
@@ -315,12 +325,15 @@ def test_cnot_early_measure(input_state, output_state):
 
     assert result.get_counts(output_reg)[output_state] == n_shots
 
+
 def test_2q_t_gate_example():
-
     api_offline = QuantinuumAPIOffline()
-    backend = QuantinuumBackend(device_name="H1-1LE", api_handler = api_offline)
+    backend = QuantinuumBackend(device_name="H1-1LE", api_handler=api_offline)
 
-    graph_circuit = GraphCircuit(n_physical_qubits=6)
+    graph_circuit = GraphCircuit(
+        n_physical_qubits=6,
+        n_registers=20,
+    )
 
     _, input_vertex_0 = graph_circuit.add_input_vertex()
 
@@ -405,24 +418,29 @@ def test_2q_t_gate_example():
     graph_circuit.corrected_measure(graph_vertex_0_0, t_multiple=0)
 
     outputs = graph_circuit.get_outputs()
-    out_meas_reg = graph_circuit.add_c_register(name='output measure', size=len(outputs))
+    out_meas_reg = graph_circuit.add_c_register(
+        name="output measure", size=len(outputs)
+    )
     for qubit, bit in zip(outputs.values(), out_meas_reg):
         graph_circuit.Measure(qubit=qubit, bit=bit)
 
     copmiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
     n_shots = 1000
     result = backend.run_circuit(circuit=copmiled_graph_circuit, n_shots=n_shots)
-    assert result.get_counts(cbits=out_meas_reg)[(1,0)] == n_shots
+    assert result.get_counts(cbits=out_meas_reg)[(1, 0)] == n_shots
+
 
 def test_1q_t_gate_example():
-
     ################################
     # The following compiles to I
 
     api_offline = QuantinuumAPIOffline()
-    backend = QuantinuumBackend(device_name="H1-1LE", api_handler = api_offline)
+    backend = QuantinuumBackend(device_name="H1-1LE", api_handler=api_offline)
 
-    graph_circuit = GraphCircuit(n_physical_qubits=2)
+    graph_circuit = GraphCircuit(
+        n_physical_qubits=2,
+        n_registers=5,
+    )
 
     _, input_vertex_0 = graph_circuit.add_input_vertex()
 
@@ -447,20 +465,25 @@ def test_1q_t_gate_example():
     graph_circuit.corrected_measure(graph_vertex_1, t_multiple=7)
 
     outputs = graph_circuit.get_outputs()
-    out_meas_reg = graph_circuit.add_c_register(name='output measure', size=len(outputs))
+    out_meas_reg = graph_circuit.add_c_register(
+        name="output measure", size=len(outputs)
+    )
     for qubit, bit in zip(outputs.values(), out_meas_reg):
         graph_circuit.Measure(qubit=qubit, bit=bit)
 
     copmiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
 
-    n_shots=1000
+    n_shots = 1000
     result = backend.run_circuit(circuit=copmiled_graph_circuit, n_shots=n_shots)
     assert result.get_counts(cbits=out_meas_reg)[(0,)] == n_shots
 
     ################################
     # The following compiles to X
 
-    graph_circuit = GraphCircuit(n_physical_qubits=2)
+    graph_circuit = GraphCircuit(
+        n_physical_qubits=2,
+        n_registers=5,
+    )
 
     _, input_vertex_0 = graph_circuit.add_input_vertex()
 
@@ -485,11 +508,13 @@ def test_1q_t_gate_example():
     graph_circuit.corrected_measure(graph_vertex_1, t_multiple=3)
 
     outputs = graph_circuit.get_outputs()
-    out_meas_reg = graph_circuit.add_c_register(name='output measure', size=len(outputs))
+    out_meas_reg = graph_circuit.add_c_register(
+        name="output measure", size=len(outputs)
+    )
     for qubit, bit in zip(outputs.values(), out_meas_reg):
         graph_circuit.Measure(qubit=qubit, bit=bit)
 
     copmiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
 
     result = backend.run_circuit(circuit=copmiled_graph_circuit, n_shots=n_shots)
-    assert result.get_counts(cbits=out_meas_reg)[(1,)] == n_shots 
+    assert result.get_counts(cbits=out_meas_reg)[(1,)] == n_shots

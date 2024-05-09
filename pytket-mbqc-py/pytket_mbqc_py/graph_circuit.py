@@ -19,8 +19,7 @@ class GraphCircuit(RandomRegisterManager):
     """Class for the automated construction of MBQC computations.
     In particular only graphs with valid flow can be constructed.
     Graph state construction and measurement corrections are added
-    automatically. A child of
-    :py:class:`~pytket_mbqc_py.qubit_manager.RandomRegisterManager`.
+    automatically.
 
     :ivar entanglement_graph: Graph detailing the graph state entanglement.
     :ivar flow_graph: Graph describing the flow dependencies of the graph state.
@@ -45,7 +44,7 @@ class GraphCircuit(RandomRegisterManager):
         the graph state structure and the measurement corrections.
 
         :param n_physical_qubits: The number of physical qubits available.
-        :n_registers: The number of random registers to generate. Defaults
+        :param n_registers: The number of random registers to generate. Defaults
             to 100 random registers.
         """
         super().__init__(n_physical_qubits=n_physical_qubits)
@@ -321,7 +320,7 @@ class GraphCircuit(RandomRegisterManager):
     def _get_z_correction_expression(self, vertex: int) -> Union[None, BitLogicExp]:
         """Create logical expression by taking the parity of
         the X corrections that have to be applied to the neighbouring
-        qubits.
+        qubits. If there are no neighbours then None will be returned.
 
         :param vertex: Vertex to be corrected.
         :return: Logical expression calculating the parity

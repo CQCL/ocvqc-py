@@ -14,8 +14,7 @@ class QubitManager(Circuit):
     Manages a collection of qubits. In particular maintains
     a list of qubits which are not in use. This can be added
     to by measuring qubits (making them available again)
-    and drawn from by initialising qubits. This is a child of
-    :py:class:`~pytket.circuit.Circuit`.
+    and drawn from by initialising qubits.
 
     :ivar qubit_list: List of available quits.
     :ivar qubit_initialised: The qubits which have been added

@@ -12,8 +12,7 @@ from pytket_mbqc_py.qubit_manager import QubitManager
 
 class RandomRegisterManager(QubitManager):
     """Class for generating random bits, and managing dedicated registers
-    where they are stored. Child of
-    :py:class:`~pytket_mbqc_py.qubit_manager.QubitManager`.
+    where they are stored.
     """
 
     def generate_random_registers(
@@ -26,10 +25,9 @@ class RandomRegisterManager(QubitManager):
         by initialising hadamard basis plus states and measuring them.
 
         :param n_registers: The number of registers to generate.
-        :param n_bits_per_reg: The number of bits in each register,
-            defaults to 3.
+        :param n_bits_per_reg: The number of bits in each register.
         :param max_n_randomness_qubits: The maximum number of qubits to use
-            to generate randomness, defaults to 2.
+            to generate randomness.
         :raises Exception: Raised if there are no qubits left to use to
             generate randomness.
         :yield: Registers containing random bits.

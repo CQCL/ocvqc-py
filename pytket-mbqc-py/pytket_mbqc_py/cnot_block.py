@@ -30,14 +30,16 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
         :param n_physical_qubits: The maximum number of physical qubits
             available. These qubits will be reused and so the total
             number of 'logical' qubits may be larger.
-        :type n_physical_qubits: int
         :param input_state: Integer tuple describing the input
             to the circuit. This will be a classical binary
             string and so the outcome is deterministic.
-        :type input_state: Tuple[int]
         :param n_layers: The number of layers of CNOT gates.
-        :type n_layers: int
+        :param n_registers: The number of classical registers to use
+            for random number generation.
         """
+
+        # TODO: n_registers should be calculated from the given
+        # input variables.
 
         self.input_state = input_state
         self.n_layers = n_layers

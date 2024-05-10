@@ -14,8 +14,7 @@ class QubitManager(Circuit):
     Manages a collection of qubits. In particular maintains
     a list of qubits which are not in use. This can be added
     to by measuring qubits (making them available again)
-    and drawn from by initialising qubits. This is a child of
-    :py:class:`~pytket.circuit.Circuit`.
+    and drawn from by initialising qubits.
 
     :ivar qubit_list: List of available quits.
     :ivar qubit_initialised: The qubits which have been added
@@ -78,13 +77,26 @@ class QubitManager(Circuit):
             if initialised
         ]
 
+    @property
+    def initialised_qubits(self) -> List[Qubit]:
+        """Qubits which have been initialised."""
+        return [
+            qubit
+            for qubit, initialised in self.qubit_initialised.items()
+            if initialised
+        ]
+
     def managed_measure(self, qubit: Qubit) -> None:
         """Measure the given qubit, storing the result in the
         qubit's classical register. This will return the qubit to
         the list of available qubits.
 
         :param qubit: The qubit to be measured.
-        :type qubit: Qubit
+
+        :raises Exception: Raised if the qubit to be measured does
+            not belong to the circuit.
         """
+        if not self.qubit_initialised[qubit]:
+            raise Exception(f"The qubit {qubit} has not been initialised.")
         self.qubit_list.insert(0, qubit)
         self.Measure(qubit=qubit, bit=self.qubit_meas_reg[qubit][0])

@@ -35,7 +35,8 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
             string and so the outcome is deterministic.
         :param n_layers: The number of layers of CNOT gates.
         :param n_registers: The number of classical registers to use
-            for random number generation.
+            for state preparation information. Note that there should
+            be at least one register per logical qubit.
         """
 
         # TODO: n_registers should be calculated from the given

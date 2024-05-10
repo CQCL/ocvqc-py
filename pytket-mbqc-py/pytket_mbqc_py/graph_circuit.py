@@ -46,8 +46,10 @@ class GraphCircuit(RandomRegisterManager):
         the graph state structure and the measurement corrections.
 
         :param n_physical_qubits: The number of physical qubits available.
-        :param n_registers: The number of random registers to generate. Defaults
-            to 100 random registers.
+        :param n_registers: The number of state initialisation registers
+            to generate. Each register describes the state that the logical
+            qubit is initialised in. Note that the number of such registers
+            should be at least the number of logical qubits.
         """
         super().__init__(n_physical_qubits=n_physical_qubits)
 
@@ -65,6 +67,11 @@ class GraphCircuit(RandomRegisterManager):
         # vertex has been measured.
         self.vertex_x_corr_reg: List[BitRegister] = []
 
+        # Generate one random register per vertex.
+        # When qubits are added they will be initialised in this
+        # random register. This in except for the case of input qubits
+        # which are initialised in the 0 state, and in which case this
+        # register is overwritten.
         self.vertex_init_reg = list(
             self.generate_random_registers(n_registers=n_registers)
         )
@@ -111,23 +118,29 @@ class GraphCircuit(RandomRegisterManager):
 
         # We need to correct all unmeasured qubits.
         for vertex in output_qubits.keys():
+            # Corrections are first applied to invert the initialisation
             self.T(self.vertex_qubit[vertex], condition=self.vertex_init_reg[vertex][0])
             self.S(self.vertex_qubit[vertex], condition=self.vertex_init_reg[vertex][0])
-            self.Z(self.vertex_qubit[vertex], condition=self.vertex_init_reg[vertex][0])
 
             self.S(self.vertex_qubit[vertex], condition=self.vertex_init_reg[vertex][1])
-            self.Z(self.vertex_qubit[vertex], condition=self.vertex_init_reg[vertex][1])
 
-            self.Z(self.vertex_qubit[vertex], condition=self.vertex_init_reg[vertex][2])
-
-            # self._apply_x_correction(vertex=vertex)
+            self.Z(
+                self.vertex_qubit[vertex],
+                condition=(
+                    self.vertex_init_reg[vertex][2]
+                    ^ self.vertex_init_reg[vertex][1]
+                    ^ self.vertex_init_reg[vertex][0]
+                ),
+            )
 
             # Apply X correction according to correction register.
+            # These are corrections resulting from the measurements
             self.X(
                 self.vertex_qubit[vertex],
                 condition=self.vertex_x_corr_reg[vertex][0],
             )
 
+            # Apply Z corrections resulting from measurements.
             self._apply_z_correction(vertex=vertex)
 
         return output_qubits
@@ -141,7 +154,7 @@ class GraphCircuit(RandomRegisterManager):
         :param qubit: Qubit to be added.
         :return: The vertex in the graphs corresponding to this qubit
 
-        :raises Exception: Raised if an insufficient number of random
+        :raises Exception: Raised if an insufficient number of initialisation
             registers were initialised.
         """
         self.vertex_qubit.append(qubit)
@@ -157,7 +170,8 @@ class GraphCircuit(RandomRegisterManager):
 
         if index >= len(self.vertex_init_reg):
             raise Exception(
-                "An insufficient number of random registers were initialised."
+                "An insufficient number of initialisation registers "
+                + "were initialised."
             )
 
         return index
@@ -175,7 +189,7 @@ class GraphCircuit(RandomRegisterManager):
         index = self._add_vertex(qubit=qubit)
 
         # In the case of input qubits, the initialisation is not random.
-        # As such the measurement angle does not need to be corrected.
+        # As such the initialisation register should be set to 0.
         self.add_c_setreg(0, self.vertex_init_reg[index])
 
         return (qubit, index)
@@ -189,6 +203,8 @@ class GraphCircuit(RandomRegisterManager):
         self.H(qubit)
         index = self._add_vertex(qubit=qubit)
 
+        # The graph state is randomly initialised based on the
+        # initialisation register.
         self.T(qubit, condition=self.vertex_init_reg[index][0])
         self.S(qubit, condition=self.vertex_init_reg[index][1])
         self.Z(qubit, condition=self.vertex_init_reg[index][2])
@@ -302,18 +318,6 @@ class GraphCircuit(RandomRegisterManager):
             v_of_edge=vertex_two,
         )
 
-    # def _apply_x_correction(self, vertex: int) -> None:
-    #     """Apply X correction. This correction is drawn from
-    #     the x correction register which is altered
-    #     by the corrected measure method as appropriate.
-
-    #     :param vertex: The vertex to be corrected.
-    #     """
-    #     self.X(
-    #         self.vertex_qubit[vertex],
-    #         condition=self.vertex_x_corr_reg[vertex][0],
-    #     )
-
     def _get_z_correction_expression(self, vertex: int) -> Union[None, BitLogicExp]:
         """Create logical expression by taking the parity of
         the X corrections that have to be applied to the neighbouring
@@ -392,6 +396,7 @@ class GraphCircuit(RandomRegisterManager):
             )
 
         # Apply X correction according to correction register.
+        # This is to correct for measurement outcomes.
         self.X(
             self.vertex_qubit[vertex],
             condition=self.vertex_x_corr_reg[vertex][0],
@@ -448,6 +453,10 @@ class GraphCircuit(RandomRegisterManager):
             ),
         )
 
+        # Rotate measurement basis.
+        # TODO: These measurements should be combined with the above
+        # so that the measurement angles are hidden by the initialisation
+        # angles.
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8
         if inverse_t_multiple // 4:

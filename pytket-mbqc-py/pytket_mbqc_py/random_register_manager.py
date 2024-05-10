@@ -27,7 +27,9 @@ class RandomRegisterManager(QubitManager):
         :param n_registers: The number of registers to generate.
         :param n_bits_per_reg: The number of bits in each register.
         :param max_n_randomness_qubits: The maximum number of qubits to use
-            to generate randomness.
+            to generate randomness. If a number of qubits less than this
+            number are actually available then the number available will
+            be used.
         :raises Exception: Raised if there are no qubits left to use to
             generate randomness.
         :yield: Registers containing random bits.
@@ -48,8 +50,8 @@ class RandomRegisterManager(QubitManager):
             These are created by initialising hadamard plus states and
             measuring the state in the computation basis. At most
             `n_randomness_qubits` qubit are created in the plus state, then
-            measured and reset as appropriate until the resulted number of bits
-            have been created.
+            measured and reset as appropriate until the requested number
+            of bits have been created.
 
             Note that the physical bits may be reused so should be used
             before the next step of the iteration.
@@ -86,7 +88,7 @@ class RandomRegisterManager(QubitManager):
         for bit_index, bit in enumerate(
             get_random_bits(n_random_bits=n_bits_per_reg * n_registers)
         ):
-            # If this is the first bit to co[y to a new register, get
+            # If this is the first bit to copy to a new register, create
             # the new register.
             if bit_index % n_bits_per_reg == 0:
                 reg = self.add_c_register(

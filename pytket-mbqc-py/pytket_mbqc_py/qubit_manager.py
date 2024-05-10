@@ -92,7 +92,6 @@ class QubitManager(Circuit):
         the list of available qubits.
 
         :param qubit: The qubit to be measured.
-        :type qubit: Qubit
 
         :raises Exception: Raised if the qubit to be measured does
             not belong to the circuit.

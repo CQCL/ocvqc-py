@@ -130,7 +130,14 @@ class GraphCircuit(RandomRegisterManager):
                 self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][2]
             )
 
-            self._apply_x_correction(vertex=vertex)
+            # self._apply_x_correction(vertex=vertex)
+
+            # Apply X correction according to correction register.
+            self.X(
+                self.vertex_qubit[vertex],
+                condition=self.vertex_x_corr_reg[vertex][0],
+            )
+
             self._apply_z_correction(vertex=vertex)
 
         return output_qubits
@@ -305,17 +312,17 @@ class GraphCircuit(RandomRegisterManager):
             v_of_edge=vertex_two,
         )
 
-    def _apply_x_correction(self, vertex: int) -> None:
-        """Apply X correction. This correction is drawn from
-        the x correction register which is altered
-        by the corrected measure method as appropriate.
+    # def _apply_x_correction(self, vertex: int) -> None:
+    #     """Apply X correction. This correction is drawn from
+    #     the x correction register which is altered
+    #     by the corrected measure method as appropriate.
 
-        :param vertex: The vertex to be corrected.
-        """
-        self.X(
-            self.vertex_qubit[vertex],
-            condition=self.vertex_x_corr_reg[vertex][0],
-        )
+    #     :param vertex: The vertex to be corrected.
+    #     """
+    #     self.X(
+    #         self.vertex_qubit[vertex],
+    #         condition=self.vertex_x_corr_reg[vertex][0],
+    #     )
 
     def _get_z_correction_expression(self, vertex: int) -> Union[None, BitLogicExp]:
         """Create logical expression by taking the parity of
@@ -374,7 +381,6 @@ class GraphCircuit(RandomRegisterManager):
         :param vertex: Vertex to be measured.
         :param t_multiple: The angle in which to measure, defaults to 0.
             This defines the rotated hadamard basis to measure in.
-        :type t_multiple: int, optional
         :raises Exception: Raised if this vertex has already been measured.
         :raises Exception: Raised if there are vertex in the past of this
             one which have not been measured.
@@ -395,19 +401,72 @@ class GraphCircuit(RandomRegisterManager):
                 + f"are in the future of {vertex} and have already been measured."
             )
 
-        self.T(self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][0])
-        self.S(self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][0])
-        self.Z(self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][0])
+        # Apply X correction according to correction register.
+        self.X(
+            self.vertex_qubit[vertex],
+            condition=self.vertex_x_corr_reg[vertex][0],
+        )
 
-        self.S(self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][1])
-        self.Z(self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][1])
+        self.T(
+            self.vertex_qubit[vertex],
+            # Required to invert random T from initialisation.
+            condition=self.vertex_random_reg[vertex][0],
+        )
+        self.S(
+            self.vertex_qubit[vertex],
+            # Required to invert random T from initialisation.
+            # This additional term is required to account for the case where
+            # the correcting T is commuted through an X correction.
+            condition=(
+                self.vertex_random_reg[vertex][0]
+                & self.vertex_x_corr_reg[vertex][0]
+            ),
+        )
 
-        self.Z(self.vertex_qubit[vertex], condition=self.vertex_random_reg[vertex][2])
+        self.S(
+            self.vertex_qubit[vertex],
+            # Required to invert random T from initialisation.
+            condition=self.vertex_random_reg[vertex][0],
+        )
 
-        # This is actually optional for graph vertices
-        # as the X correction commutes with the hadamard
-        # basis measurement.
-        self._apply_x_correction(vertex=vertex)
+        self.S(
+            self.vertex_qubit[vertex],
+            # Required to invert random S from initialisation.
+            condition=self.vertex_random_reg[vertex][1],
+        )
+
+        self.Z(
+            self.vertex_qubit[vertex],
+            condition=(
+                # Required to invert random T from initialisation.
+                self.vertex_random_reg[vertex][0]
+                # Required to invert random S from initialisation.
+                ^ self.vertex_random_reg[vertex][1]
+                # Required to invert random Z from initialisation.
+                ^ self.vertex_random_reg[vertex][2]
+                # Required to invert random S from initialisation.
+                # This additional term is required to account for the case where
+                # the correcting S is commuted through an X correction.
+                ^ (
+                    self.vertex_random_reg[vertex][1]
+                    & self.vertex_x_corr_reg[vertex][0]
+                )
+                # Required to invert random T from initialisation.
+                # This additional term is required to account for the case where
+                # the correcting S is commuted through an X correction.
+                ^ (
+                    self.vertex_random_reg[vertex][0]
+                    & self.vertex_x_corr_reg[vertex][0]
+                )
+                # Required to invert random T from initialisation.
+                # This additional term is required to account for the case where
+                # the correcting T is commuted through an X correction.
+                ^ (
+                    self.vertex_random_reg[vertex][0]
+                    & self.vertex_x_corr_reg[vertex][0]
+                )
+            ),
+        )
 
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8

@@ -75,7 +75,7 @@ class GraphCircuit(RandomRegisterManager):
         self.vertex_init_reg = list(
             self.generate_random_registers(n_registers=n_registers)
         )
-        self.add_barrier(units=self.qubits)
+        self.add_barrier(units=self.qubits + self.bits)
 
     def get_outputs(self) -> Dict[int, Qubit]:
         """Return the output qubits. Output qubits are those that

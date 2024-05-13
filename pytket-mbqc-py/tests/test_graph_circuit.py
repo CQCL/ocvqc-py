@@ -149,7 +149,7 @@ def test_cnot(input_state, output_state):
     ],
 )
 def test_cnot_block(input_state, output_state, n_layers):
-    n_physical_qubits = 20
+    n_physical_qubits = 15
 
     circuit = CNOTBlocksGraphCircuit(
         n_physical_qubits=n_physical_qubits,
@@ -182,7 +182,7 @@ def test_large_cnot_block():
     input_state = (0, 1, 1, 0)
     output_state = (0, 1, 0, 1)
     n_layers = 3
-    n_physical_qubits = 20
+    n_physical_qubits = 8
 
     circuit = CNOTBlocksGraphCircuit(
         n_physical_qubits=n_physical_qubits,

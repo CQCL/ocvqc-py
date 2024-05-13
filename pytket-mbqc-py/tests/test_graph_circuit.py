@@ -182,7 +182,7 @@ def test_large_cnot_block():
     input_state = (0, 1, 1, 0)
     output_state = (0, 1, 0, 1)
     n_layers = 3
-    n_physical_qubits = 8
+    n_physical_qubits = 20
 
     circuit = CNOTBlocksGraphCircuit(
         n_physical_qubits=n_physical_qubits,
@@ -327,6 +327,7 @@ def test_cnot_early_measure(input_state, output_state):
     assert result.get_counts(output_reg)[output_state] == n_shots
 
 
+@pytest.mark.high_compute
 def test_2q_t_gate_example():
     api_offline = QuantinuumAPIOffline()
     backend = QuantinuumBackend(device_name="H1-1LE", api_handler=api_offline)
@@ -472,10 +473,10 @@ def test_1q_t_gate_example():
     for qubit, bit in zip(outputs.values(), out_meas_reg):
         graph_circuit.Measure(qubit=qubit, bit=bit)
 
-    copmiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
+    compiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
 
     n_shots = 1000
-    result = backend.run_circuit(circuit=copmiled_graph_circuit, n_shots=n_shots)
+    result = backend.run_circuit(circuit=compiled_graph_circuit, n_shots=n_shots)
     assert result.get_counts(cbits=out_meas_reg)[(0,)] == n_shots
 
     ################################
@@ -515,7 +516,7 @@ def test_1q_t_gate_example():
     for qubit, bit in zip(outputs.values(), out_meas_reg):
         graph_circuit.Measure(qubit=qubit, bit=bit)
 
-    copmiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
+    compiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
 
-    result = backend.run_circuit(circuit=copmiled_graph_circuit, n_shots=n_shots)
+    result = backend.run_circuit(circuit=compiled_graph_circuit, n_shots=n_shots)
     assert result.get_counts(cbits=out_meas_reg)[(1,)] == n_shots

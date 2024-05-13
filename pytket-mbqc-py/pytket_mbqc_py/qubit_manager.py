@@ -17,18 +17,20 @@ class QubitManager(Circuit):
     and drawn from by initialising qubits.
 
     :ivar available_qubit_list: List of available quits.
-        That is to say those that have been used but not measured.
+        These are those qubits which have either never been used, or have been
+        used but have been measured and can be reset.
     :ivar all_qubit_list: All qubits which could in principle be used.
     :ivar qubit_meas_reg: A dictionary mapping qubits to the
         classical registers where their measurement results
         will be stored.
     :ivar physical_qubits_used: A set containing the qubits which
-        have been made use of.
+        have been made use of at some point.
     """
 
     available_qubit_list: List[Qubit]
     all_qubit_list: List[Qubit]
     qubit_meas_reg: Dict[Qubit, BitRegister]
+    physical_qubits_used: set[Qubit]
 
     def __init__(self, n_physical_qubits: int) -> None:
         """Initialisation method. Creates tools for
@@ -43,7 +45,7 @@ class QubitManager(Circuit):
             qubit: BitRegister(name=f"meas_{i}", size=1)
             for i, qubit in enumerate(self.available_qubit_list)
         }
-        self.physical_qubits_used: set[Qubit] = set()
+        self.physical_qubits_used = set()
 
         super().__init__()
 

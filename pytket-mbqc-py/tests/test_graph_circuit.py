@@ -520,3 +520,67 @@ def test_1q_t_gate_example():
 
     result = backend.run_circuit(circuit=compiled_graph_circuit, n_shots=n_shots)
     assert result.get_counts(cbits=out_meas_reg)[(1,)] == n_shots
+
+
+def test_missmatched_ordered_measure():
+    # A test where the measurement order
+    # does not match the initialisation order
+
+    graph_circuit = GraphCircuit(
+        n_physical_qubits=4,
+        n_registers=10,
+    )
+
+    _, input_vertex_zero = graph_circuit.add_input_vertex(measurement_order=0)
+    _, input_vertex_one = graph_circuit.add_input_vertex(measurement_order=1)
+
+    graph_vertex_two = graph_circuit.add_graph_vertex(measurement_order=2)
+    graph_vertex_three = graph_circuit.add_graph_vertex(measurement_order=3)
+
+    graph_circuit.add_edge(input_vertex_zero, graph_vertex_two)
+    graph_circuit.add_edge(input_vertex_one, graph_vertex_three)
+
+    graph_circuit.corrected_measure(input_vertex_zero)
+    graph_circuit.corrected_measure(input_vertex_one)
+
+    graph_vertex_four = graph_circuit.add_graph_vertex(measurement_order=4)
+    graph_vertex_five = graph_circuit.add_graph_vertex(measurement_order=6)
+
+    graph_circuit.add_edge(graph_vertex_two, graph_vertex_four)
+    graph_circuit.add_edge(graph_vertex_three, graph_vertex_five)
+    graph_circuit.add_edge(graph_vertex_two, graph_vertex_three)
+
+    graph_circuit.corrected_measure(graph_vertex_two)
+    graph_circuit.corrected_measure(graph_vertex_three)
+
+    graph_vertex_six = graph_circuit.add_graph_vertex(measurement_order=5)
+    graph_circuit.add_edge(graph_vertex_four, graph_vertex_six)
+    graph_circuit.corrected_measure(graph_vertex_four)
+
+    graph_vertex_seven = graph_circuit.add_graph_vertex(measurement_order=7)
+    graph_circuit.add_edge(graph_vertex_six, graph_vertex_seven)
+    graph_circuit.corrected_measure(graph_vertex_six)
+
+    graph_vertex_eight = graph_circuit.add_graph_vertex(measurement_order=8)
+    graph_vertex_nine = graph_circuit.add_graph_vertex(measurement_order=9)
+
+    graph_circuit.add_edge(graph_vertex_five, graph_vertex_nine)
+    graph_circuit.add_edge(graph_vertex_seven, graph_vertex_eight)
+    graph_circuit.add_edge(graph_vertex_five, graph_vertex_seven)
+
+    graph_circuit.corrected_measure(graph_vertex_five)
+    graph_circuit.corrected_measure(graph_vertex_seven)
+
+    backend = QuantinuumBackend(
+        device_name="H1-1LE", api_handler=QuantinuumAPIOffline()
+    )
+
+    output_qubit_dict = graph_circuit.get_outputs()
+    output_reg = graph_circuit.add_c_register(name="output meas", size=2)
+    graph_circuit.Measure(output_qubit_dict[8], output_reg[0])
+    graph_circuit.Measure(output_qubit_dict[9], output_reg[1])
+
+    compiled_circuit = backend.get_compiled_circuit(graph_circuit)
+    n_shots = 100
+    result = backend.run_circuit(circuit=compiled_circuit, n_shots=n_shots)
+    assert result.get_counts(cbits=output_reg)[(0, 0)] == n_shots

@@ -436,30 +436,37 @@ class GraphCircuit(RandomRegisterManager):
                 + "so cannot be measured."
             )
 
+        # A list of vertices measured after the given one.
+        later_vertex_list = [
+            later_vertex
+            for later_vertex, later_vertex_order in enumerate(
+                self.measurement_order_list
+            )
+            if (
+                (later_vertex_order is not None)
+                # This cast is safe as we have established above that the
+                # vertex has a measurement order.
+                and (
+                    later_vertex_order > cast(int, self.measurement_order_list[vertex])
+                )
+            )
+        ]
+        measured_later_vertex_list = [
+            later_vertex
+            for later_vertex in later_vertex_list
+            if self.vertex_measured[later_vertex]
+        ]
+
         # None of the later vertices have been measured.
         # TODO: This checks that no vertices which are in the future of this
         # one have already been measured. This is the wrong way around as we
         # would prefer to check that all vertices in the past have been
         # measured. This is an artifact of leaving outputs unmeasured, and
         # should ideally be removed.
-        if any(
-            different_vertex_measured
-            for different_vertex_order, different_vertex_measured in zip(
-                self.measurement_order_list, self.vertex_measured
-            )
-            if (
-                (different_vertex_order is not None)
-                and (
-                    different_vertex_order
-                    > cast(int, self.measurement_order_list[vertex])
-                )
-            )
-        ):
-            # Check that all vertices before the one given have been measured.
-            # if any(self.vertex_measured[vertex:]):
+        if len(measured_later_vertex_list) > 0:
             raise Exception(
                 f"Measuring {vertex} does not respect the measurement order. "
-                + f"Vertices {[vertex + i for i, measured in enumerate(self.vertex_measured[vertex:]) if measured]} "
+                + f"Vertices {measured_later_vertex_list} "
                 + f"are in the future of {vertex} and have already been measured."
             )
 

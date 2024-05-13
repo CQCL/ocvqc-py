@@ -5,7 +5,7 @@ and automatically adding measurement corrections.
 """
 
 from functools import reduce
-from typing import Dict, List, Tuple, Union, cast, Optional
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 import networkx as nx  # type:ignore
 from pytket import Qubit
@@ -39,7 +39,7 @@ class GraphCircuit(RandomRegisterManager):
     entanglement_graph: nx.Graph
     flow_graph: nx.DiGraph
     vertex_x_corr_reg: List[BitRegister]
-    measurement_order_list: List[int]
+    measurement_order_list: List[Union[None, int]]
     vertex_qubit: List[Qubit]
     vertex_measured: List[bool]
     vertex_init_reg: List[BitRegister]
@@ -266,14 +266,29 @@ class GraphCircuit(RandomRegisterManager):
             is measured after vertex_one. This would not allow corrections
             from that inverse flow to propagate to vertex_one.
         """
-        if self.measurement_order_list[vertex_one] > self.measurement_order_list[vertex_two]:
+
+        if (self.measurement_order_list[vertex_one] is None) and (
+            self.measurement_order_list[vertex_two] is not None
+        ):
             raise Exception(
-                f"{vertex_one} is measured after {vertex_two}. "
-                + "The respective measurements orders are "
-                + f"{self.measurement_order_list[vertex_one]} and "
-                + f"{self.measurement_order_list[vertex_two]}."
-                + "Cannot add edge into the past."
+                "Please ensure that edge point towards unmeasured qubits. "
+                + f"In this case {vertex_one} is an output but {vertex_two} "
+                + "is not."
             )
+
+        if (self.measurement_order_list[vertex_one] is not None) and (
+            self.measurement_order_list[vertex_two] is not None
+        ):
+            if cast(int, self.measurement_order_list[vertex_one]) > cast(
+                int, self.measurement_order_list[vertex_two]
+            ):
+                raise Exception(
+                    f"{vertex_one} is measured after {vertex_two}. "
+                    + "The respective measurements orders are "
+                    + f"{self.measurement_order_list[vertex_one]} and "
+                    + f"{self.measurement_order_list[vertex_two]}."
+                    + "Cannot add edge into the past."
+                )
 
         if vertex_one not in self.entanglement_graph.nodes:
             raise Exception(
@@ -286,7 +301,7 @@ class GraphCircuit(RandomRegisterManager):
                 f"There is no vertex with the index {vertex_two}. "
                 + "Use the entanglement_graph attribute to see existing vertices."
             )
-        
+
         assert vertex_one in self.flow_graph.nodes
         assert vertex_two in self.flow_graph.nodes
 
@@ -305,7 +320,8 @@ class GraphCircuit(RandomRegisterManager):
             past_neighbours = [
                 vertex
                 for vertex in self.entanglement_graph.neighbors(n=vertex_two)
-                if self.measurement_order_list[vertex] < self.measurement_order_list[vertex_one]
+                if self.measurement_order_list[vertex]
+                < self.measurement_order_list[vertex_one]
             ]
             # If there are any such vertices then an error should be raised.
             if len(past_neighbours) > 0:
@@ -320,7 +336,8 @@ class GraphCircuit(RandomRegisterManager):
         # vertex_one is a neighbour of vertex_two. As such vertex_one must be measured after
         # any vertices of which vertex_two is its flow.
         if any(
-            self.measurement_order_list[flow_inverse] > self.measurement_order_list[vertex_one]
+            self.measurement_order_list[flow_inverse]
+            > self.measurement_order_list[vertex_one]
             for flow_inverse in self.flow_graph.predecessors(vertex_two)
         ):
             raise Exception(
@@ -337,7 +354,7 @@ class GraphCircuit(RandomRegisterManager):
             )
 
         self.CZ(self.vertex_qubit[vertex_one], self.vertex_qubit[vertex_two])
-        
+
         self.entanglement_graph.add_edge(
             u_of_edge=vertex_one,
             v_of_edge=vertex_two,
@@ -411,8 +428,14 @@ class GraphCircuit(RandomRegisterManager):
             raise Exception(
                 f"Vertex {vertex} has already been measured and cannot be measured again."
             )
-        
-        # Check that all vertices before the one given have been measured.
+
+        if self.measurement_order_list[vertex] is None:
+            raise Exception(
+                "This vertex does not have a measurement order and "
+                + "so cannot be measured."
+            )
+
+        # None of the later vertices have been measured.
         # TODO: This checks that no vertices which are in the future of this
         # one have already been measured. This is the wrong way around as we
         # would prefer to check that all vertices in the past have been
@@ -420,13 +443,19 @@ class GraphCircuit(RandomRegisterManager):
         # should ideally be removed.
         if any(
             different_vertex_measured
-            for different_vertex_order, different_vertex_measured
-            in zip(self.measurement_order_list ,self.vertex_measured)
-            if different_vertex_order > self.measurement_order_list[vertex]
+            for different_vertex_order, different_vertex_measured in zip(
+                self.measurement_order_list, self.vertex_measured
+            )
+            if (
+                (different_vertex_order is not None)
+                and (
+                    different_vertex_order
+                    > cast(int, self.measurement_order_list[vertex])
+                )
+            )
         ):
-
-        # Check that all vertices before the one given have been measured.
-        # if any(self.vertex_measured[vertex:]):
+            # Check that all vertices before the one given have been measured.
+            # if any(self.vertex_measured[vertex:]):
             raise Exception(
                 f"Measuring {vertex} does not respect the measurement order. "
                 + f"Vertices {[vertex + i for i, measured in enumerate(self.vertex_measured[vertex:]) if measured]} "

@@ -5,7 +5,7 @@ and automatically adding measurement corrections.
 """
 
 from functools import reduce
-from typing import Dict, List, Tuple, Union, cast
+from typing import Dict, List, Tuple, Union, cast, Optional
 
 import networkx as nx  # type:ignore
 from pytket import Qubit
@@ -31,11 +31,18 @@ class GraphCircuit(RandomRegisterManager):
         the state it was initialised in. In particular this is a 3 bit register
         with the 0th entry giving the T rotation, the 1st giving the
         S rotation, and the 2nd giving the Z rotation.
+    :ivar measurement_order_list: List order of vertex measurement.
+        Entry i corresponds to the position in the order at which
+        vertex i is measured.
     """
 
     entanglement_graph: nx.Graph
     flow_graph: nx.DiGraph
     vertex_x_corr_reg: List[BitRegister]
+    measurement_order_list: List[int]
+    vertex_qubit: List[Qubit]
+    vertex_measured: List[bool]
+    vertex_init_reg: List[BitRegister]
 
     def __init__(
         self,
@@ -56,8 +63,10 @@ class GraphCircuit(RandomRegisterManager):
         self.entanglement_graph = nx.Graph()
         self.flow_graph = nx.DiGraph()
 
-        self.vertex_qubit: List[Qubit] = []
-        self.vertex_measured: List[bool] = []
+        self.vertex_qubit = []
+        self.vertex_measured = []
+
+        self.measurement_order_list = []
 
         # We need to save the x correction information long term.
         # This is why there is one register per vertex, as these
@@ -65,7 +74,7 @@ class GraphCircuit(RandomRegisterManager):
         # as they are needed to calculate z corrections on
         # neighbouring qubits, which could be needed after the
         # vertex has been measured.
-        self.vertex_x_corr_reg: List[BitRegister] = []
+        self.vertex_x_corr_reg = []
 
         # Generate one random register per vertex.
         # When qubits are added they will be initialised in this
@@ -83,11 +92,11 @@ class GraphCircuit(RandomRegisterManager):
         """Return the output qubits. Output qubits are those that
         are unmeasured, and which do not have a flow. This should
         be treated as the final step in an MBQC computation. Indeed
-        check are made that the state has been appropriately
+        checks are made that the state has been appropriately
         measured. This will also apply the appropriate corrections to
         the output qubits.
 
-        :raises Exception: Raised if there there are qubits
+        :raises Exception: Raised if there are qubits
             with flow which have not been measured. All
             qubits with flow must be measured before the MBQC
             computation can be finalised and the outputs recovered.
@@ -97,7 +106,7 @@ class GraphCircuit(RandomRegisterManager):
         """
 
         # All qubits with flow must be measured. This is to
-        # ensure that all correction have been made.
+        # ensure that all corrections have been made.
         unmeasured_flow_vertices = [
             vertex
             for vertex in self._vertices_with_flow
@@ -147,7 +156,7 @@ class GraphCircuit(RandomRegisterManager):
 
         return output_qubits
 
-    def _add_vertex(self, qubit: Qubit) -> int:
+    def _add_vertex(self, qubit: Qubit, measurement_order: Optional[int]) -> int:
         """Add a new vertex to the graph.
         This requires that the vertex is added to the
         entanglement and flow graphs. A register to save
@@ -161,6 +170,13 @@ class GraphCircuit(RandomRegisterManager):
         """
         self.vertex_qubit.append(qubit)
         self.vertex_measured.append(False)
+
+        if measurement_order in self.measurement_order_list:
+            raise Exception(
+                "Measurement order must be unique. "
+                + f"A vertex is already measured at order {measurement_order}."
+            )
+        self.measurement_order_list.append(measurement_order)
 
         index = len(self.vertex_qubit) - 1
         self.entanglement_graph.add_node(node_for_adding=index)
@@ -178,7 +194,7 @@ class GraphCircuit(RandomRegisterManager):
 
         return index
 
-    def add_input_vertex(self) -> Tuple[Qubit, int]:
+    def add_input_vertex(self, measurement_order: Optional[int]) -> Tuple[Qubit, int]:
         """Add a new input vertex to the graph.
         This returns the input qubit created.
         You may perform transformations on this input qubit
@@ -188,7 +204,7 @@ class GraphCircuit(RandomRegisterManager):
         :return: The qubit added, and the corresponding index in the graph.
         """
         qubit = self.get_qubit()
-        index = self._add_vertex(qubit=qubit)
+        index = self._add_vertex(qubit=qubit, measurement_order=measurement_order)
 
         # In the case of input qubits, the initialisation is not random.
         # As such the initialisation register should be set to 0.
@@ -196,14 +212,14 @@ class GraphCircuit(RandomRegisterManager):
 
         return (qubit, index)
 
-    def add_graph_vertex(self) -> int:
+    def add_graph_vertex(self, measurement_order: Optional[int]) -> int:
         """Add a new graph vertex.
 
         :return: The index of the vertex added.
         """
         qubit = self.get_qubit()
         self.H(qubit)
-        index = self._add_vertex(qubit=qubit)
+        index = self._add_vertex(qubit=qubit, measurement_order=measurement_order)
 
         # The graph state is randomly initialised based on the
         # initialisation register.
@@ -250,9 +266,12 @@ class GraphCircuit(RandomRegisterManager):
             is measured after vertex_one. This would not allow corrections
             from that inverse flow to propagate to vertex_one.
         """
-        if vertex_one > vertex_two:
+        if self.measurement_order_list[vertex_one] > self.measurement_order_list[vertex_two]:
             raise Exception(
-                f"{vertex_one} is greater than {vertex_two}. "
+                f"{vertex_one} is measured after {vertex_two}. "
+                + "The respective measurements orders are "
+                + f"{self.measurement_order_list[vertex_one]} and "
+                + f"{self.measurement_order_list[vertex_two]}."
                 + "Cannot add edge into the past."
             )
 
@@ -267,6 +286,9 @@ class GraphCircuit(RandomRegisterManager):
                 f"There is no vertex with the index {vertex_two}. "
                 + "Use the entanglement_graph attribute to see existing vertices."
             )
+        
+        assert vertex_one in self.flow_graph.nodes
+        assert vertex_two in self.flow_graph.nodes
 
         if self.vertex_measured[vertex_one] or self.vertex_measured[vertex_two]:
             raise Exception(
@@ -278,11 +300,14 @@ class GraphCircuit(RandomRegisterManager):
         # If vertex_two is to be the flow of vertex_one than we must check that neighbours of
         # vertex_two are measured after vertex_one.
         if vertex_one not in self._vertices_with_flow:
+            # Get a list of neighbours of vertex_two which are measured
+            # before vertex_one.
             past_neighbours = [
                 vertex
                 for vertex in self.entanglement_graph.neighbors(n=vertex_two)
-                if vertex < vertex_one
+                if self.measurement_order_list[vertex] < self.measurement_order_list[vertex_one]
             ]
+            # If there are any such vertices then an error should be raised.
             if len(past_neighbours) > 0:
                 raise Exception(
                     f"Adding the edge ({vertex_one}, {vertex_two}) does not define a valid flow. "
@@ -295,7 +320,7 @@ class GraphCircuit(RandomRegisterManager):
         # vertex_one is a neighbour of vertex_two. As such vertex_one must be measured after
         # any vertices of which vertex_two is its flow.
         if any(
-            flow_inverse > vertex_one
+            self.measurement_order_list[flow_inverse] > self.measurement_order_list[vertex_one]
             for flow_inverse in self.flow_graph.predecessors(vertex_two)
         ):
             raise Exception(
@@ -312,9 +337,7 @@ class GraphCircuit(RandomRegisterManager):
             )
 
         self.CZ(self.vertex_qubit[vertex_one], self.vertex_qubit[vertex_two])
-
-        assert vertex_one in self.entanglement_graph.nodes
-        assert vertex_two in self.entanglement_graph.nodes
+        
         self.entanglement_graph.add_edge(
             u_of_edge=vertex_one,
             v_of_edge=vertex_two,
@@ -388,9 +411,22 @@ class GraphCircuit(RandomRegisterManager):
             raise Exception(
                 f"Vertex {vertex} has already been measured and cannot be measured again."
             )
+        
+        # Check that all vertices before the one given have been measured.
+        # TODO: This checks that no vertices which are in the future of this
+        # one have already been measured. This is the wrong way around as we
+        # would prefer to check that all vertices in the past have been
+        # measured. This is an artifact of leaving outputs unmeasured, and
+        # should ideally be removed.
+        if any(
+            different_vertex_measured
+            for different_vertex_order, different_vertex_measured
+            in zip(self.measurement_order_list ,self.vertex_measured)
+            if different_vertex_order > self.measurement_order_list[vertex]
+        ):
 
         # Check that all vertices before the one given have been measured.
-        if any(self.vertex_measured[vertex:]):
+        # if any(self.vertex_measured[vertex:]):
             raise Exception(
                 f"Measuring {vertex} does not respect the measurement order. "
                 + f"Vertices {[vertex + i for i, measured in enumerate(self.vertex_measured[vertex:]) if measured]} "

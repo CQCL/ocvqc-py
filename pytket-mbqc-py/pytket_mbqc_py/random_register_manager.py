@@ -35,7 +35,7 @@ class RandomRegisterManager(QubitManager):
         :yield: Registers containing random bits.
         """
 
-        if len(self.qubit_list) == 0:
+        if len(self.available_qubit_list) == 0:
             raise Exception(
                 "There are no unused qubits "
                 + "which can be used to generate randomness."
@@ -43,7 +43,9 @@ class RandomRegisterManager(QubitManager):
 
         # The number of qubits used is the smaller of the maximum number set
         # by the user, or the number which is available.
-        n_randomness_qubits = min(len(self.qubit_list), max_n_randomness_qubits)
+        n_randomness_qubits = min(
+            len(self.available_qubit_list), max_n_randomness_qubits
+        )
 
         def get_random_bits(n_random_bits: int) -> Iterator[Bit]:
             """An iterator over bits populated with random values.

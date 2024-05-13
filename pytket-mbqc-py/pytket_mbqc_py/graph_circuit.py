@@ -5,12 +5,12 @@ and automatically adding measurement corrections.
 """
 
 from functools import reduce
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, cast
 
 import networkx as nx  # type:ignore
 from pytket import Qubit
 from pytket.circuit.logic_exp import BitLogicExp
-from pytket.unit_id import BitRegister
+from pytket.unit_id import BitRegister, UnitID
 
 from pytket_mbqc_py.random_register_manager import RandomRegisterManager
 
@@ -75,7 +75,9 @@ class GraphCircuit(RandomRegisterManager):
         self.vertex_init_reg = list(
             self.generate_random_registers(n_registers=n_registers)
         )
-        self.add_barrier(units=self.qubits)
+        self.add_barrier(
+            units=cast(List[UnitID], self.qubits) + cast(List[UnitID], self.bits)
+        )
 
     def get_outputs(self) -> Dict[int, Qubit]:
         """Return the output qubits. Output qubits are those that

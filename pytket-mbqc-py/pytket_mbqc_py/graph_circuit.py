@@ -280,7 +280,8 @@ class GraphCircuit(RandomRegisterManager):
         if (
             (self.measurement_order_list[vertex_one] is not None)
             and (self.measurement_order_list[vertex_two] is not None)
-            and cast(int, self.measurement_order_list[vertex_one]) > cast(int, self.measurement_order_list[vertex_two])
+            and cast(int, self.measurement_order_list[vertex_one])
+            > cast(int, self.measurement_order_list[vertex_two])
         ):
             raise Exception(
                 f"{vertex_one} is measured after {vertex_two}. "

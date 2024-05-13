@@ -43,7 +43,7 @@ class QubitManager(Circuit):
             qubit: BitRegister(name=f"meas_{i}", size=1)
             for i, qubit in enumerate(self.available_qubit_list)
         }
-        self.physical_qubits_used = set()
+        self.physical_qubits_used: set[Qubit] = set()
 
         super().__init__()
 
@@ -52,7 +52,6 @@ class QubitManager(Circuit):
 
         for qubit in self.all_qubit_list:
             self.add_qubit(id=qubit)
-
 
     def get_qubit(self) -> Qubit:
         """Return a qubit which is not in use, and which

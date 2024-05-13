@@ -337,28 +337,28 @@ def test_2q_t_gate_example():
         n_registers=20,
     )
 
-    _, input_vertex_0 = graph_circuit.add_input_vertex()
+    _, input_vertex_0 = graph_circuit.add_input_vertex(measurement_order=0)
 
     # H[0]S[0]
-    graph_vertex_0_0 = graph_circuit.add_graph_vertex()
+    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=1)
     graph_circuit.add_edge(input_vertex_0, graph_vertex_0_0)
     graph_circuit.corrected_measure(input_vertex_0, t_multiple=2)
 
     # H[0]
-    graph_vertex_0_1 = graph_circuit.add_graph_vertex()
+    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=2)
     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_0_1)
     graph_circuit.corrected_measure(graph_vertex_0_0, t_multiple=0)
 
-    _, input_vertex_1 = graph_circuit.add_input_vertex()
+    _, input_vertex_1 = graph_circuit.add_input_vertex(measurement_order=3)
 
     # CZ[0,1]H[1]H[0]
-    graph_vertex_0_0 = graph_circuit.add_graph_vertex()
+    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=4)
     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_0)
     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=0)
 
-    graph_vertex_1_0 = graph_circuit.add_graph_vertex()
+    graph_vertex_1_0 = graph_circuit.add_graph_vertex(measurement_order=5)
 
-    graph_vertex_0_1 = graph_circuit.add_graph_vertex()
+    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=6)
     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_0_1)
 
     graph_circuit.add_edge(input_vertex_1, graph_vertex_1_0)
@@ -366,7 +366,7 @@ def test_2q_t_gate_example():
 
     graph_circuit.corrected_measure(input_vertex_1, t_multiple=0)
 
-    graph_vertex_1_1 = graph_circuit.add_graph_vertex()
+    graph_vertex_1_1 = graph_circuit.add_graph_vertex(measurement_order=7)
     graph_circuit.add_edge(graph_vertex_1_0, graph_vertex_1_1)
 
     # H[0]
@@ -376,29 +376,29 @@ def test_2q_t_gate_example():
     graph_circuit.corrected_measure(graph_vertex_1_0, t_multiple=0)
 
     # H[0]Z[0]
-    graph_vertex_0_0 = graph_circuit.add_graph_vertex()
+    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=8)
     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_0)
     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=4)
 
     # H[0]
-    graph_vertex_0_1 = graph_circuit.add_graph_vertex()
+    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=9)
     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_0_1)
 
     # CZ[0,1]H[0]H[1]
-    graph_vertex_0_2 = graph_circuit.add_graph_vertex()
+    graph_vertex_0_2 = graph_circuit.add_graph_vertex(measurement_order=10)
     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_2)
 
-    graph_vertex_1_0 = graph_circuit.add_graph_vertex()
+    graph_vertex_1_0 = graph_circuit.add_graph_vertex(measurement_order=11)
     graph_circuit.add_edge(graph_vertex_1_1, graph_vertex_1_0)
     graph_circuit.corrected_measure(graph_vertex_1_1, t_multiple=0)
 
     graph_circuit.corrected_measure(graph_vertex_0_0, t_multiple=0)
     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=0)
 
-    graph_vertex_0_1 = graph_circuit.add_graph_vertex()
+    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=12)
     graph_circuit.add_edge(graph_vertex_0_2, graph_vertex_0_1)
 
-    graph_vertex_1_1 = graph_circuit.add_graph_vertex()
+    graph_vertex_1_1 = graph_circuit.add_graph_vertex(measurement_order=13)
     graph_circuit.add_edge(graph_vertex_1_0, graph_vertex_1_1)
 
     graph_circuit.add_edge(graph_vertex_0_2, graph_vertex_1_0)
@@ -410,12 +410,12 @@ def test_2q_t_gate_example():
     graph_circuit.corrected_measure(graph_vertex_1_0, t_multiple=0)
 
     # H[0]S[0]
-    graph_vertex_0_0 = graph_circuit.add_graph_vertex()
+    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=14)
     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_0)
     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=2)
 
     # H[0]
-    graph_vertex_0_1 = graph_circuit.add_graph_vertex()
+    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=15)
     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_0_1)
     graph_circuit.corrected_measure(graph_vertex_0_0, t_multiple=0)
 

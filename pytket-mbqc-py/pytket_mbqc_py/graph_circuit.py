@@ -33,7 +33,8 @@ class GraphCircuit(RandomRegisterManager):
         S rotation, and the 2nd giving the Z rotation.
     :ivar measurement_order_list: List order of vertex measurement.
         Entry i corresponds to the position in the order at which
-        vertex i is measured.
+        vertex i is measured. If None then vertex is taken not to be
+        measured.
     """
 
     entanglement_graph: nx.Graph
@@ -276,19 +277,18 @@ class GraphCircuit(RandomRegisterManager):
                 + "is not."
             )
 
-        if (self.measurement_order_list[vertex_one] is not None) and (
-            self.measurement_order_list[vertex_two] is not None
+        if (
+            (self.measurement_order_list[vertex_one] is not None)
+            and (self.measurement_order_list[vertex_two] is not None)
+            and cast(int, self.measurement_order_list[vertex_one]) > cast(int, self.measurement_order_list[vertex_two])
         ):
-            if cast(int, self.measurement_order_list[vertex_one]) > cast(
-                int, self.measurement_order_list[vertex_two]
-            ):
-                raise Exception(
-                    f"{vertex_one} is measured after {vertex_two}. "
-                    + "The respective measurements orders are "
-                    + f"{self.measurement_order_list[vertex_one]} and "
-                    + f"{self.measurement_order_list[vertex_two]}."
-                    + "Cannot add edge into the past."
-                )
+            raise Exception(
+                f"{vertex_one} is measured after {vertex_two}. "
+                + "The respective measurements orders are "
+                + f"{self.measurement_order_list[vertex_one]} and "
+                + f"{self.measurement_order_list[vertex_two]}."
+                + "Cannot add edge into the past."
+            )
 
         if vertex_one not in self.entanglement_graph.nodes:
             raise Exception(

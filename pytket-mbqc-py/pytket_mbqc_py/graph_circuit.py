@@ -490,6 +490,10 @@ class GraphCircuit(RandomRegisterManager):
             one which have not been measured.
         :raises Exception: Raised if this vertex does not have flow.
         :raises Exception: Raised if this vertex has no measurement order
+        :raises Exception: Raised if this vertex is not the first measured,
+            but there is no vertex with order one less than the one considered.
+            This would be raised if the order the vertices are measured
+            in is not sequential.
         """
         # Check that the vertex being measured has not already been measured.
         if self.vertex_measured[vertex]:
@@ -522,6 +526,17 @@ class GraphCircuit(RandomRegisterManager):
                 )
             )
         ), "There are vertices with higher order which have already been measured"
+
+        if (
+            # safe to cast as we have check that the order is not None.
+            (cast(int, self.measurement_order_list[vertex]) > 0)
+            and (self.measurement_order_list[vertex] not in self.measurement_order_list)
+        ):
+            raise Exception(
+                f"Vertex {vertex} has order "
+                + f"{self.measurement_order_list[vertex]} "
+                + f"but there is no vertex with order {self.measurement_order_list[vertex]}."
+            )
 
         # List the vertices which have order less than the vertex considered,
         # but which have not yet been measured.

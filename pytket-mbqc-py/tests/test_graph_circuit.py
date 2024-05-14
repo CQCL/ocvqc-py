@@ -583,4 +583,6 @@ def test_missmatched_ordered_measure():
     compiled_circuit = backend.get_compiled_circuit(graph_circuit)
     n_shots = 100
     result = backend.run_circuit(circuit=compiled_circuit, n_shots=n_shots)
+    # This circuit does not implemented the identity, but in the measurement
+    # and initialisation basis used the ideal outcome is (0, 0)
     assert result.get_counts(cbits=output_reg)[(0, 0)] == n_shots

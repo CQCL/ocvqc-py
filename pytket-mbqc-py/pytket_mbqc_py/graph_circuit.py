@@ -157,7 +157,7 @@ class GraphCircuit(RandomRegisterManager):
 
         return output_qubits
 
-    def _add_vertex(self, qubit: Qubit, measurement_order: Optional[int]) -> int:
+    def _add_vertex(self, qubit: Qubit, measurement_order: Union[int, None]) -> int:
         """Add a new vertex to the graph.
         This requires that the vertex is added to the
         entanglement and flow graphs. A register to save
@@ -172,7 +172,9 @@ class GraphCircuit(RandomRegisterManager):
         self.vertex_qubit.append(qubit)
         self.vertex_measured.append(False)
 
-        if measurement_order in self.measurement_order_list:
+        if (measurement_order is not None) and (
+            measurement_order in self.measurement_order_list
+        ):
             raise Exception(
                 "Measurement order must be unique. "
                 + f"A vertex is already measured at order {measurement_order}."
@@ -195,7 +197,9 @@ class GraphCircuit(RandomRegisterManager):
 
         return index
 
-    def add_input_vertex(self, measurement_order: Optional[int]) -> Tuple[Qubit, int]:
+    def add_input_vertex(
+        self, measurement_order: Union[int, None]
+    ) -> Tuple[Qubit, int]:
         """Add a new input vertex to the graph.
         This returns the input qubit created.
         You may perform transformations on this input qubit
@@ -213,7 +217,7 @@ class GraphCircuit(RandomRegisterManager):
 
         return (qubit, index)
 
-    def add_graph_vertex(self, measurement_order: Optional[int]) -> int:
+    def add_graph_vertex(self, measurement_order: Union[int, None]) -> int:
         """Add a new graph vertex.
 
         :return: The index of the vertex added.

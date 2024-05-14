@@ -586,3 +586,63 @@ def test_missmatched_ordered_measure():
     # This circuit does not implemented the identity, but in the measurement
     # and initialisation basis used the ideal outcome is (0, 0)
     assert result.get_counts(cbits=output_reg)[(0, 0)] == n_shots
+
+
+@pytest.mark.parametrize(
+    "input_state, output_state",
+    [((0, 0), (0, 0)), ((0, 1), (0, 1)), ((1, 0), (1, 1)), ((1, 1), (1, 0))],
+)
+def test_cnot_low_dept(input_state, output_state):
+    graph_circuit = GraphCircuit(n_physical_qubits=3, n_registers=4)
+    qubit_zero, vertex_zero = graph_circuit.add_input_vertex(measurement_order=0)
+
+    if input_state[0]:
+        graph_circuit.X(qubit_zero)
+
+    graph_circuit.H(qubit_zero)
+
+    vertex_one = graph_circuit.add_graph_vertex(measurement_order=None)
+
+    graph_circuit.add_edge(
+        vertex_one=vertex_zero,
+        vertex_two=vertex_one,
+    )
+
+    graph_circuit.corrected_measure(vertex_zero)
+
+    qubit_two, vertex_two = graph_circuit.add_input_vertex(measurement_order=1)
+
+    if input_state[1]:
+        graph_circuit.X(qubit_two)
+
+    vertex_three = graph_circuit.add_graph_vertex(measurement_order=None)
+
+    graph_circuit.add_edge(
+        vertex_one=vertex_two,
+        vertex_two=vertex_three,
+    )
+
+    graph_circuit.add_edge(
+        vertex_one=vertex_one,
+        vertex_two=vertex_three,
+    )
+
+    graph_circuit.corrected_measure(vertex_two)
+
+    output_dict = graph_circuit.get_outputs()
+
+    graph_circuit.H(output_dict[3])
+
+    output_meas_reg = graph_circuit.add_c_register(name="output measure", size=2)
+    graph_circuit.Measure(output_dict[1], output_meas_reg[0])
+    graph_circuit.Measure(output_dict[3], output_meas_reg[1])
+
+    backend = QuantinuumBackend(
+        device_name="H1-1LE",
+        api_handler=QuantinuumAPIOffline(),
+    )
+
+    compiled_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
+    n_shots = 100
+    result = backend.run_circuit(circuit=compiled_circuit, n_shots=n_shots)
+    assert result.get_counts(cbits=output_meas_reg)[output_state] == n_shots

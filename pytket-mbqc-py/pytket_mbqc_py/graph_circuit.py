@@ -164,6 +164,8 @@ class GraphCircuit(RandomRegisterManager):
         the vertex X correction to is also created.
 
         :param qubit: Qubit to be added.
+        :param measurement_order: The order at which this vertex will
+            be measured.
         :return: The vertex in the graphs corresponding to this qubit
 
         :raises Exception: Raised if an insufficient number of initialisation
@@ -206,6 +208,9 @@ class GraphCircuit(RandomRegisterManager):
         but all transformations must be completed before
         any edges are added to this vertex.
 
+        :param measurement_order: The order at which this vertex will
+            be measured.
+
         :return: The qubit added, and the corresponding index in the graph.
         """
         qubit = self.get_qubit()
@@ -219,6 +224,9 @@ class GraphCircuit(RandomRegisterManager):
 
     def add_graph_vertex(self, measurement_order: Union[int, None]) -> int:
         """Add a new graph vertex.
+
+        :param measurement_order: The order at which this vertex will
+            be measured.
 
         :return: The index of the vertex added.
         """
@@ -272,6 +280,8 @@ class GraphCircuit(RandomRegisterManager):
             from that inverse flow to propagate to vertex_one.
         """
 
+        # Check that edges only point towards unmeasured vertices.
+        # This ensures that unmeasured vertices do not have flow.
         if (self.measurement_order_list[vertex_one] is None) and (
             self.measurement_order_list[vertex_two] is not None
         ):
@@ -317,9 +327,13 @@ class GraphCircuit(RandomRegisterManager):
             )
 
         # If this is the first future of vertex_one then it will be taken to be its flow.
+        # This is only not the case if vertex_one is not measured, in which
+        # case it has not flow.
         # If vertex_two is to be the flow of vertex_one than we must check that neighbours of
         # vertex_two are measured after vertex_one.
-        if vertex_one not in self._vertices_with_flow:
+        if (self.measurement_order_list[vertex_one] is not None) and (
+            vertex_one not in self._vertices_with_flow
+        ):
             # Get a list of neighbours of vertex_two which are measured
             # before vertex_one.
             past_neighbours = [
@@ -328,6 +342,10 @@ class GraphCircuit(RandomRegisterManager):
                 if self.measurement_order_list[vertex]
                 < self.measurement_order_list[vertex_one]
             ]
+            print("vertex_two", vertex_two)
+            print("neighbors", list(self.entanglement_graph.neighbors(n=vertex_two)))
+            print(self.measurement_order_list)
+            print("past_neighbours", past_neighbours)
             # If there are any such vertices then an error should be raised.
             if len(past_neighbours) > 0:
                 raise Exception(
@@ -338,9 +356,15 @@ class GraphCircuit(RandomRegisterManager):
                     + f"neighbours of {vertex_two} must be in the past of {vertex_one}."
                 )
 
+        target_inverse_flow = list(self.flow_graph.predecessors(vertex_two))
+        assert all(
+            self.measurement_order_list[inverse_flow] is not None
+            for inverse_flow in target_inverse_flow
+        )
+
         # vertex_one is a neighbour of vertex_two. As such vertex_one must be measured after
         # any vertices of which vertex_two is its flow.
-        if any(
+        if (self.measurement_order_list[vertex_one] is not None) and any(
             self.measurement_order_list[flow_inverse]
             > self.measurement_order_list[vertex_one]
             for flow_inverse in self.flow_graph.predecessors(vertex_two)
@@ -352,7 +376,9 @@ class GraphCircuit(RandomRegisterManager):
             )
 
         # If this is the first future of vertex_one then it is taken to be its flow.
-        if vertex_one not in self._vertices_with_flow:
+        if (self.measurement_order_list[vertex_one] is not None) and (
+            vertex_one not in self._vertices_with_flow
+        ):
             self.flow_graph.add_edge(
                 u_of_edge=vertex_one,
                 v_of_edge=vertex_two,

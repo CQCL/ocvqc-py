@@ -758,19 +758,19 @@ files = [
 
 [[package]]
 name = "docstr-coverage"
-version = "2.3.1"
+version = "2.3.2"
 description = "Utility for examining python source files to ensure proper documentation. Lists missing docstrings, and calculates overall docstring coverage percentage rating."
 optional = false
 python-versions = "*"
 files = [
-    {file = "docstr-coverage-2.3.1.tar.gz", hash = "sha256:225eb772f0db7f968e5effae110770e622d5ec89bfc6df620de1f6873bfa53e7"},
-    {file = "docstr_coverage-2.3.1-py3-none-any.whl", hash = "sha256:7f5616d6c4ee39dddb895d8f039390be6ad70a152d7cd0a70c63304f8f5bf7f1"},
+    {file = "docstr-coverage-2.3.2.tar.gz", hash = "sha256:e99a28c502ed21ae8a310cb9e14e8de2d7cff44d365b46fa6dca6de05bf156a0"},
+    {file = "docstr_coverage-2.3.2-py3-none-any.whl", hash = "sha256:37a885d6560ad87e289b23bf0e54527885bacbf6b17cf55278d514dd0fef8ff5"},
 ]
 
 [package.dependencies]
 click = "*"
 PyYAML = "*"
-tqdm = "4.63.1"
+tqdm = "*"
 
 [package.extras]
 lint = ["black (==22.3.0)", "flake8 (==4.0.1)", "isort (==5.10.1)"]
@@ -3737,4 +3737,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "<3.12,>=3.10"
-content-hash = "c398a9263e0d01d2a6835af2243d70322a0d9a8236918459e94e0626e915ef40"
+content-hash = "a522068a482023a3375ac0c496b6b2291b12eeeb2ba9b3785a0650dadaa81b8c"

@@ -489,7 +489,7 @@ class GraphCircuit(RandomRegisterManager):
         :raises Exception: Raised if there are vertex in the past of this
             one which have not been measured.
         :raises Exception: Raised if this vertex does not have flow.
-            Vertices without flow are output qubits.
+        :raises Exception: Raised if this vertex has no measurement order
         """
         # Check that the vertex being measured has not already been measured.
         if self.vertex_measured[vertex]:
@@ -502,6 +502,9 @@ class GraphCircuit(RandomRegisterManager):
                 "This vertex does not have a measurement order and "
                 + "cannot be measured."
             )
+
+        if vertex not in self._vertices_with_flow:
+            raise Exception(f"Vertex {vertex} has no flow and cannot be measured.")
 
         # Assert that all vertices with order greater than that of the qubit
         # being measured have not yet been measured.
@@ -518,7 +521,7 @@ class GraphCircuit(RandomRegisterManager):
                     later_vertex_order > cast(int, self.measurement_order_list[vertex])
                 )
             )
-        ), "There are vertices with higher order which have already been measured."
+        ), "There are vertices with higher order which have already been measured"
 
         # List the vertices which have order less than the vertex considered,
         # but which have not yet been measured.

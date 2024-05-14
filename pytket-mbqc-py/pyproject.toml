@@ -17,7 +17,7 @@ mypy = "^1.10.0"
 importlib-resources = "^6.1.2"
 pytest-parallel = "^0.1.1"
 py = "^1.11.0"
-docstr-coverage = "^2.3.1"
+docstr-coverage = "^2.3.2"
 sphinx = "^7.3.7"
 sphinx-autodoc-typehints = "^2.1.0"
 

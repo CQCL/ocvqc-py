@@ -31,10 +31,10 @@ class GraphCircuit(RandomRegisterManager):
         the state it was initialised in. In particular this is a 3 bit register
         with the 0th entry giving the T rotation, the 1st giving the
         S rotation, and the 2nd giving the Z rotation.
-    :ivar measurement_order_list: List order of vertex measurement.
+    :ivar measurement_order_list: List of vertex measurement order.
         Entry i corresponds to the position in the order at which
         vertex i is measured. If None then vertex is taken not to be
-        measured.
+        measured, which is to say it is an output.
     """
 
     entanglement_graph: nx.Graph
@@ -48,16 +48,14 @@ class GraphCircuit(RandomRegisterManager):
     def __init__(
         self,
         n_physical_qubits: int,
-        n_registers: int,
+        n_logical_qubits: int,
     ) -> None:
         """Initialisation method. Creates tools to track
         the graph state structure and the measurement corrections.
 
         :param n_physical_qubits: The number of physical qubits available.
-        :param n_registers: The number of state initialisation registers
-            to generate. Each register describes the state that the logical
-            qubit is initialised in. Note that the number of such registers
-            should be at least the number of logical qubits.
+        :param n_logical_qubits: The number of vertices in the graph state.
+            This is used to initialise the appropriate number of registers.
         """
         super().__init__(n_physical_qubits=n_physical_qubits)
 
@@ -79,12 +77,15 @@ class GraphCircuit(RandomRegisterManager):
 
         # Generate one random register per vertex.
         # When qubits are added they will be initialised in this
-        # random register. This in except for the case of input qubits
+        # random register. This is except for the case of input qubits
         # which are initialised in the 0 state, and in which case this
         # register is overwritten.
         self.vertex_init_reg = list(
-            self.generate_random_registers(n_registers=n_registers)
+            self.generate_random_registers(n_registers=n_logical_qubits)
         )
+
+        # Isolate the initialisation randomness generation from the
+        # rest of the circuit.
         self.add_barrier(
             units=cast(List[UnitID], self.qubits) + cast(List[UnitID], self.bits)
         )
@@ -108,25 +109,44 @@ class GraphCircuit(RandomRegisterManager):
 
         # All qubits with flow must be measured. This is to
         # ensure that all corrections have been made.
-        unmeasured_flow_vertices = [
-            vertex
-            for vertex in self._vertices_with_flow
-            if not self.vertex_measured[vertex]
-        ]
-        if len(unmeasured_flow_vertices) > 0:
-            raise Exception(
-                "Only output vertices can be unmeasured. "
-                + f"In particular {unmeasured_flow_vertices} "
-                + "have flow but are not measured."
-            )
+        # unmeasured_flow_vertices = [
+        #     vertex
+        #     for vertex in self._vertices_with_flow
+        #     if not self.vertex_measured[vertex]
+        # ]
+        # if len(unmeasured_flow_vertices) > 0:
+        #     raise Exception(
+        #         "Only output vertices can be unmeasured. "
+        #         + f"In particular {unmeasured_flow_vertices} "
+        #         + "have flow but are not measured."
+        #     )
 
-        # At this point we know that all unmeasured qubits
-        # have no flow. As such they are safely outputs.
         output_qubits = {
             vertex: qubit
             for vertex, qubit in enumerate(self.vertex_qubit)
             if not self.vertex_measured[vertex]
         }
+
+        ordered_unmeasured_qubits = [
+            vertex
+            for vertex in output_qubits.keys()
+            if self.measurement_order_list[vertex] is not None
+        ]
+        if len(ordered_unmeasured_qubits) > 0:
+            raise Exception(
+                f"Vertices {ordered_unmeasured_qubits} have a measurement order "
+                + "but have not been measured. "
+                + "Please measure them, or give them a measurement order of None."
+            )
+
+        # All qubits with flow must be measured. This is to
+        # ensure that all corrections have been made.
+        unmeasured_flow_vertices = [
+            vertex
+            for vertex in self._vertices_with_flow
+            if not self.vertex_measured[vertex]
+        ]
+        assert unmeasured_flow_vertices == []
 
         # We need to correct all unmeasured qubits.
         for vertex in output_qubits.keys():
@@ -342,10 +362,6 @@ class GraphCircuit(RandomRegisterManager):
                 if self.measurement_order_list[vertex]
                 < self.measurement_order_list[vertex_one]
             ]
-            print("vertex_two", vertex_two)
-            print("neighbors", list(self.entanglement_graph.neighbors(n=vertex_two)))
-            print(self.measurement_order_list)
-            print("past_neighbours", past_neighbours)
             # If there are any such vertices then an error should be raised.
             if len(past_neighbours) > 0:
                 raise Exception(

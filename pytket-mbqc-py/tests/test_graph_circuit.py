@@ -6,12 +6,12 @@ from pytket_mbqc_py import CNOTBlocksGraphCircuit, GraphCircuit
 
 
 def test_plus_state():
-    circuit = GraphCircuit(n_physical_qubits=2, n_registers=3)
+    circuit = GraphCircuit(n_physical_qubits=2, n_logical_qubits=3)
 
     input_qubit, vertex_one = circuit.add_input_vertex(measurement_order=0)
     circuit.H(input_qubit)
 
-    vertex_two = circuit.add_graph_vertex(measurement_order=1)
+    vertex_two = circuit.add_graph_vertex(measurement_order=None)
 
     circuit.add_edge(vertex_one=vertex_one, vertex_two=vertex_two)
     circuit.corrected_measure(vertex=vertex_one)
@@ -38,14 +38,14 @@ def test_plus_state():
 def test_x_gate():
     circuit = GraphCircuit(
         n_physical_qubits=3,
-        n_registers=3,
+        n_logical_qubits=3,
     )
 
     _, vertex_one = circuit.add_input_vertex(measurement_order=0)
 
     vertex_two = circuit.add_graph_vertex(measurement_order=1)
     circuit.add_edge(vertex_one=vertex_one, vertex_two=vertex_two)
-    vertex_three = circuit.add_graph_vertex(measurement_order=2)
+    vertex_three = circuit.add_graph_vertex(measurement_order=None)
     circuit.add_edge(vertex_one=vertex_two, vertex_two=vertex_three)
     circuit.corrected_measure(vertex=vertex_one, t_multiple=0)
     circuit.corrected_measure(vertex=vertex_two, t_multiple=4)
@@ -79,7 +79,7 @@ def test_x_gate():
 def test_cnot(input_state, output_state):
     circuit = GraphCircuit(
         n_physical_qubits=5,
-        n_registers=10,
+        n_logical_qubits=10,
     )
 
     target_qubit, vertex_one = circuit.add_input_vertex(measurement_order=0)
@@ -104,11 +104,11 @@ def test_cnot(input_state, output_state):
     circuit.add_edge(vertex_one=vertex_four, vertex_two=vertex_six)
     circuit.corrected_measure(vertex=vertex_two, t_multiple=0)
 
-    vertex_seven = circuit.add_graph_vertex(measurement_order=6)
+    vertex_seven = circuit.add_graph_vertex(measurement_order=None)
     circuit.add_edge(vertex_one=vertex_five, vertex_two=vertex_seven)
     circuit.corrected_measure(vertex=vertex_three, t_multiple=0)
 
-    vertex_eight = circuit.add_graph_vertex(measurement_order=7)
+    vertex_eight = circuit.add_graph_vertex(measurement_order=None)
     circuit.add_edge(vertex_one=vertex_six, vertex_two=vertex_eight)
 
     circuit.add_edge(vertex_one=vertex_six, vertex_two=vertex_seven)
@@ -155,7 +155,7 @@ def test_cnot_block(input_state, output_state, n_layers):
         n_physical_qubits=n_physical_qubits,
         input_state=input_state,
         n_layers=n_layers,
-        n_registers=40,
+        n_logical_qubits=40,
     )
 
     output_vertex_quibts = circuit.get_outputs()
@@ -188,7 +188,7 @@ def test_large_cnot_block():
         n_physical_qubits=n_physical_qubits,
         input_state=input_state,
         n_layers=n_layers,
-        n_registers=40,
+        n_logical_qubits=40,
     )
 
     output_vertex_quibts = circuit.get_outputs()
@@ -211,22 +211,22 @@ def test_large_cnot_block():
 
 
 def test_3_q_ghz():
-    graph_circuit = GraphCircuit(n_physical_qubits=5, n_registers=5)
+    graph_circuit = GraphCircuit(n_physical_qubits=5, n_logical_qubits=5)
 
     input_quibt, input_vertex = graph_circuit.add_input_vertex(measurement_order=0)
 
     graph_circuit.H(input_quibt)
 
     vertex_layer_1_1 = graph_circuit.add_graph_vertex(measurement_order=1)
-    vertex_layer_1_2 = graph_circuit.add_graph_vertex(measurement_order=2)
+    vertex_layer_1_2 = graph_circuit.add_graph_vertex(measurement_order=None)
 
     graph_circuit.add_edge(input_vertex, vertex_layer_1_1)
     graph_circuit.add_edge(input_vertex, vertex_layer_1_2)
 
     graph_circuit.corrected_measure(vertex=input_vertex)
 
-    vertex_layer_2_1 = graph_circuit.add_graph_vertex(measurement_order=3)
-    vertex_layer_2_2 = graph_circuit.add_graph_vertex(measurement_order=4)
+    vertex_layer_2_1 = graph_circuit.add_graph_vertex(measurement_order=None)
+    vertex_layer_2_2 = graph_circuit.add_graph_vertex(measurement_order=None)
 
     graph_circuit.add_edge(vertex_layer_1_1, vertex_layer_2_1)
     graph_circuit.add_edge(vertex_layer_1_1, vertex_layer_2_2)
@@ -265,7 +265,7 @@ def test_3_q_ghz():
 def test_cnot_early_measure(input_state, output_state):
     circuit = GraphCircuit(
         n_physical_qubits=3,
-        n_registers=10,
+        n_logical_qubits=10,
     )
 
     target_qubit, vertex_one = circuit.add_input_vertex(measurement_order=0)
@@ -296,12 +296,12 @@ def test_cnot_early_measure(input_state, output_state):
 
     circuit.corrected_measure(vertex=vertex_four, t_multiple=0)
 
-    vertex_seven = circuit.add_graph_vertex(measurement_order=6)
+    vertex_seven = circuit.add_graph_vertex(measurement_order=None)
     circuit.add_edge(vertex_one=vertex_five, vertex_two=vertex_seven)
 
     circuit.corrected_measure(vertex=vertex_five, t_multiple=0)
 
-    vertex_eight = circuit.add_graph_vertex(measurement_order=7)
+    vertex_eight = circuit.add_graph_vertex(measurement_order=None)
     circuit.add_edge(vertex_one=vertex_six, vertex_two=vertex_eight)
 
     circuit.add_edge(vertex_one=vertex_six, vertex_two=vertex_seven)
@@ -334,7 +334,7 @@ def test_2q_t_gate_example():
 
     graph_circuit = GraphCircuit(
         n_physical_qubits=6,
-        n_registers=20,
+        n_logical_qubits=20,
     )
 
     _, input_vertex_0 = graph_circuit.add_input_vertex(measurement_order=0)
@@ -410,12 +410,12 @@ def test_2q_t_gate_example():
     graph_circuit.corrected_measure(graph_vertex_1_0, t_multiple=0)
 
     # H[0]S[0]
-    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=14)
+    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=None)
     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_0)
     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=2)
 
     # H[0]
-    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=15)
+    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=None)
     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_0_1)
     graph_circuit.corrected_measure(graph_vertex_0_0, t_multiple=0)
 
@@ -441,7 +441,7 @@ def test_1q_t_gate_example():
 
     graph_circuit = GraphCircuit(
         n_physical_qubits=2,
-        n_registers=5,
+        n_logical_qubits=5,
     )
 
     _, input_vertex_0 = graph_circuit.add_input_vertex(measurement_order=0)
@@ -462,7 +462,7 @@ def test_1q_t_gate_example():
     graph_circuit.corrected_measure(graph_vertex_0, t_multiple=0)
 
     # H[0]T[0]S[0]Z[0]
-    graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=4)
+    graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=None)
     graph_circuit.add_edge(graph_vertex_1, graph_vertex_0)
     graph_circuit.corrected_measure(graph_vertex_1, t_multiple=7)
 
@@ -484,7 +484,7 @@ def test_1q_t_gate_example():
 
     graph_circuit = GraphCircuit(
         n_physical_qubits=2,
-        n_registers=5,
+        n_logical_qubits=5,
     )
 
     _, input_vertex_0 = graph_circuit.add_input_vertex(measurement_order=0)
@@ -505,7 +505,7 @@ def test_1q_t_gate_example():
     graph_circuit.corrected_measure(graph_vertex_0, t_multiple=0)
 
     # H[0]T[0]S[0]Z[0]
-    graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=4)
+    graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=None)
     graph_circuit.add_edge(graph_vertex_1, graph_vertex_0)
     graph_circuit.corrected_measure(graph_vertex_1, t_multiple=3)
 
@@ -522,13 +522,13 @@ def test_1q_t_gate_example():
     assert result.get_counts(cbits=out_meas_reg)[(1,)] == n_shots
 
 
-def test_missmatched_ordered_measure():
+def test_mismatched_ordered_measure():
     # A test where the measurement order
     # does not match the initialisation order
 
     graph_circuit = GraphCircuit(
         n_physical_qubits=4,
-        n_registers=10,
+        n_logical_qubits=10,
     )
 
     _, input_vertex_zero = graph_circuit.add_input_vertex(measurement_order=0)
@@ -561,8 +561,8 @@ def test_missmatched_ordered_measure():
     graph_circuit.add_edge(graph_vertex_six, graph_vertex_seven)
     graph_circuit.corrected_measure(graph_vertex_six)
 
-    graph_vertex_eight = graph_circuit.add_graph_vertex(measurement_order=8)
-    graph_vertex_nine = graph_circuit.add_graph_vertex(measurement_order=9)
+    graph_vertex_eight = graph_circuit.add_graph_vertex(measurement_order=None)
+    graph_vertex_nine = graph_circuit.add_graph_vertex(measurement_order=None)
 
     graph_circuit.add_edge(graph_vertex_five, graph_vertex_nine)
     graph_circuit.add_edge(graph_vertex_seven, graph_vertex_eight)
@@ -593,7 +593,7 @@ def test_missmatched_ordered_measure():
     [((0, 0), (0, 0)), ((0, 1), (0, 1)), ((1, 0), (1, 1)), ((1, 1), (1, 0))],
 )
 def test_cnot_low_dept(input_state, output_state):
-    graph_circuit = GraphCircuit(n_physical_qubits=3, n_registers=4)
+    graph_circuit = GraphCircuit(n_physical_qubits=3, n_logical_qubits=4)
     qubit_zero, vertex_zero = graph_circuit.add_input_vertex(measurement_order=0)
 
     if input_state[0]:

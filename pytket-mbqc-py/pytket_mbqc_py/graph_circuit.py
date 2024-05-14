@@ -102,31 +102,30 @@ class GraphCircuit(RandomRegisterManager):
             with flow which have not been measured. All
             qubits with flow must be measured before the MBQC
             computation can be finalised and the outputs recovered.
+        :raises Exception: Raised if too many logical qubits
+            were requested upon initialisation.
+
         :return: Dictionary mapping output vertices to physical
             qubits. These qubits can now be treated as normal circuit
             qubits.
         """
 
-        # All qubits with flow must be measured. This is to
-        # ensure that all corrections have been made.
-        # unmeasured_flow_vertices = [
-        #     vertex
-        #     for vertex in self._vertices_with_flow
-        #     if not self.vertex_measured[vertex]
-        # ]
-        # if len(unmeasured_flow_vertices) > 0:
-        #     raise Exception(
-        #         "Only output vertices can be unmeasured. "
-        #         + f"In particular {unmeasured_flow_vertices} "
-        #         + "have flow but are not measured."
-        #     )
+        if len(self.vertex_init_reg) > len(self.vertex_qubit):
+            raise Exception(
+                f"Too many initialisation registers, {len(self.vertex_init_reg)}, were created. "
+                + f"Consider setting n_logical_qubits={len(self.vertex_qubit)} "
+                + "upon initialising this class."
+            )
 
+        # Outputs should be all of the qubits which have not been measured.
         output_qubits = {
             vertex: qubit
             for vertex, qubit in enumerate(self.vertex_qubit)
             if not self.vertex_measured[vertex]
         }
 
+        # Unmeasured vertices should not have an order.
+        # If they do they need to be measured.
         ordered_unmeasured_qubits = [
             vertex
             for vertex in output_qubits.keys()
@@ -136,17 +135,19 @@ class GraphCircuit(RandomRegisterManager):
             raise Exception(
                 f"Vertices {ordered_unmeasured_qubits} have a measurement order "
                 + "but have not been measured. "
-                + "Please measure them, or give them a measurement order of None."
             )
 
         # All qubits with flow must be measured. This is to
         # ensure that all corrections have been made.
+        # It would be a bug if this is not the case as all vertices with
+        # flow should have an order, and all vertices with an order
+        # should have been measured.
         unmeasured_flow_vertices = [
             vertex
             for vertex in self._vertices_with_flow
             if not self.vertex_measured[vertex]
         ]
-        assert unmeasured_flow_vertices == []
+        assert unmeasured_flow_vertices == [], "A vertex with flow is unmeasured."
 
         # We need to correct all unmeasured qubits.
         for vertex in output_qubits.keys():
@@ -173,6 +174,8 @@ class GraphCircuit(RandomRegisterManager):
             )
 
             # Apply Z corrections resulting from measurements.
+            # This cannot be done classically as the vertex itself has not
+            # been measured.
             self._apply_z_correction(vertex=vertex)
 
         return output_qubits
@@ -185,14 +188,21 @@ class GraphCircuit(RandomRegisterManager):
 
         :param qubit: Qubit to be added.
         :param measurement_order: The order at which this vertex will
-            be measured.
+            be measured. None if the qubit is an output.
         :return: The vertex in the graphs corresponding to this qubit
 
         :raises Exception: Raised if an insufficient number of initialisation
-            registers were initialised.
+            registers were created.
+        :raises Exception: Raised if the measurement order given
+            is already in use. That is to say a vertex measurement order
+            must be unique.
         """
-        self.vertex_qubit.append(qubit)
-        self.vertex_measured.append(False)
+
+        if len(self.vertex_qubit) >= len(self.vertex_init_reg):
+            raise Exception(
+                "An insufficient number of initialisation registers "
+                + "were created. A new vertex cannot be added."
+            )
 
         if (measurement_order is not None) and (
             measurement_order in self.measurement_order_list
@@ -201,21 +211,18 @@ class GraphCircuit(RandomRegisterManager):
                 "Measurement order must be unique. "
                 + f"A vertex is already measured at order {measurement_order}."
             )
-        self.measurement_order_list.append(measurement_order)
 
-        index = len(self.vertex_qubit) - 1
+        index = len(self.vertex_qubit)
         self.entanglement_graph.add_node(node_for_adding=index)
         self.flow_graph.add_node(node_for_adding=index)
 
         x_corr_reg = BitRegister(name=f"x_corr_{index}", size=1)
-        self.vertex_x_corr_reg.append(x_corr_reg)
         self.add_c_register(register=x_corr_reg)
 
-        if index >= len(self.vertex_init_reg):
-            raise Exception(
-                "An insufficient number of initialisation registers "
-                + "were initialised."
-            )
+        self.vertex_x_corr_reg.append(x_corr_reg)
+        self.vertex_qubit.append(qubit)
+        self.vertex_measured.append(False)
+        self.measurement_order_list.append(measurement_order)
 
         return index
 
@@ -280,10 +287,14 @@ class GraphCircuit(RandomRegisterManager):
 
         Note that if vertex_two is the first neighbour of
         vertex_one then vertex_two will be taken to be the flow
-        of vertex_one.
+        of vertex_one. This is only not the case if vertex_two is an
+        output vertex.
 
         :param vertex_one: Source vertex.
         :param vertex_two: Target vertex.
+
+        :raises Exception: Raised if the edge points from a non-output
+            vertex to an output vertex.
         :raises Exception: Raised the edge acts into the past.
             I.e. if vertex_two is measured before vertex_one.
             Equivalently if vertex_two < vertex_one
@@ -337,18 +348,24 @@ class GraphCircuit(RandomRegisterManager):
                 + "Use the entanglement_graph attribute to see existing vertices."
             )
 
-        assert vertex_one in self.flow_graph.nodes
-        assert vertex_two in self.flow_graph.nodes
+        # If edges are in the entanglement_graph they should be in
+        # the flow_graph. It would be a bug if not.
+        assert (
+            vertex_one in self.flow_graph.nodes
+        ), f"Vertex {vertex_one} missing from flow graph"
+        assert (
+            vertex_two in self.flow_graph.nodes
+        ), f"Vertex {vertex_two} missing from flow graph"
 
         if self.vertex_measured[vertex_one] or self.vertex_measured[vertex_two]:
             raise Exception(
-                "Cannot add edge after measure."
+                "Cannot add edge after measure. "
                 + f"In particular {[vertex for vertex in [vertex_one, vertex_two] if self.vertex_measured[vertex]]} have been measured."
             )
 
         # If this is the first future of vertex_one then it will be taken to be its flow.
         # This is only not the case if vertex_one is not measured, in which
-        # case it has not flow.
+        # case it has no flow.
         # If vertex_two is to be the flow of vertex_one than we must check that neighbours of
         # vertex_two are measured after vertex_one.
         if (self.measurement_order_list[vertex_one] is not None) and (
@@ -372,21 +389,25 @@ class GraphCircuit(RandomRegisterManager):
                     + f"neighbours of {vertex_two} must be in the past of {vertex_one}."
                 )
 
+        # No vertex with flow should be unmeasured.
+        # In particular this assert ensures that the check following it
+        # always compares integers.
         target_inverse_flow = list(self.flow_graph.predecessors(vertex_two))
         assert all(
             self.measurement_order_list[inverse_flow] is not None
             for inverse_flow in target_inverse_flow
-        )
+        ), f"An inverse flow of {vertex_two} is not measured"
 
         # vertex_one is a neighbour of vertex_two. As such vertex_one must be measured after
-        # any vertices of which vertex_two is its flow.
+        # any vertices of which vertex_two is its flow. If it is not measured
+        # then it is certainly measured after vertex_two.
         if (self.measurement_order_list[vertex_one] is not None) and any(
             self.measurement_order_list[flow_inverse]
             > self.measurement_order_list[vertex_one]
             for flow_inverse in self.flow_graph.predecessors(vertex_two)
         ):
             raise Exception(
-                "This does not define a valid flow. "
+                f"Adding the edge {(vertex_one, vertex_two)} does not define a valid flow. "
                 f"In particular {vertex_two} is the flow of {list(self.flow_graph.predecessors(vertex_two))}, "
                 f"some of which are measured after {vertex_one}."
             )
@@ -479,14 +500,15 @@ class GraphCircuit(RandomRegisterManager):
         if self.measurement_order_list[vertex] is None:
             raise Exception(
                 "This vertex does not have a measurement order and "
-                + "so cannot be measured."
+                + "cannot be measured."
             )
 
-        # A list of vertices measured after the given one.
-        later_vertex_list = [
-            later_vertex
-            for later_vertex, later_vertex_order in enumerate(
-                self.measurement_order_list
+        # Assert that all vertices with order greater than that of the qubit
+        # being measured have not yet been measured.
+        assert all(
+            not later_vertex_measured
+            for later_vertex_measured, later_vertex_order in zip(
+                self.measurement_order_list, self.vertex_measured
             )
             if (
                 (later_vertex_order is not None)
@@ -496,24 +518,29 @@ class GraphCircuit(RandomRegisterManager):
                     later_vertex_order > cast(int, self.measurement_order_list[vertex])
                 )
             )
-        ]
-        measured_later_vertex_list = [
-            later_vertex
-            for later_vertex in later_vertex_list
-            if self.vertex_measured[later_vertex]
-        ]
+        ), "There are vertices with higher order which have already been measured."
 
-        # None of the later vertices have been measured.
-        # TODO: This checks that no vertices which are in the future of this
-        # one have already been measured. This is the wrong way around as we
-        # would prefer to check that all vertices in the past have been
-        # measured. This is an artifact of leaving outputs unmeasured, and
-        # should ideally be removed.
-        if len(measured_later_vertex_list) > 0:
+        # List the vertices which have order less than the vertex considered,
+        # but which have not yet been measured.
+        unmeasured_earlier_vertex_list = [
+            earlier_vertex
+            for earlier_vertex, earlier_vertex_order in enumerate(
+                self.measurement_order_list
+            )
+            if (
+                (earlier_vertex_order is not None)
+                and (
+                    earlier_vertex_order
+                    < cast(int, self.measurement_order_list[vertex])
+                )
+                and (not self.vertex_measured[earlier_vertex])
+            )
+        ]
+        if len(unmeasured_earlier_vertex_list) > 0:
             raise Exception(
-                f"Measuring {vertex} does not respect the measurement order. "
-                + f"Vertices {measured_later_vertex_list} "
-                + f"are in the future of {vertex} and have already been measured."
+                f"The vertices {unmeasured_earlier_vertex_list} are ordered "
+                + f"to be measured before vertex {vertex}, "
+                + "but are unmeasured."
             )
 
         # Apply X correction according to correction register.

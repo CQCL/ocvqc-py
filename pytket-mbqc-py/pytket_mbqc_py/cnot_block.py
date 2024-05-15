@@ -23,7 +23,7 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
         n_physical_qubits: int,
         input_state: Tuple[int],
         n_layers: int,
-        n_registers: int,
+        n_logical_qubits: int,
     ) -> None:
         """Initialisation method.
 
@@ -34,13 +34,16 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
             to the circuit. This will be a classical binary
             string and so the outcome is deterministic.
         :param n_layers: The number of layers of CNOT gates.
-        :param n_registers: The number of classical registers to use
-            for state preparation information. Note that there should
-            be at least one register per logical qubit.
+        :param n_logical_qubits: The number of vertices in the graph state.
+            This is used to initialise the appropriate number of registers.
         """
 
-        # TODO: n_registers should be calculated from the given
+        # TODO: n_logical_qubits should be calculated from the given
         # input variables.
+
+        # TODO: It would be better to calculate the measurement
+        # order as the state is built, rather than just incrementing it.
+        measurement_order = 0
 
         self.input_state = input_state
         self.n_layers = n_layers
@@ -62,7 +65,7 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
 
         super().__init__(
             n_physical_qubits=n_physical_qubits,
-            n_registers=n_registers,
+            n_logical_qubits=n_logical_qubits,
         )
 
         for layer in range(n_layers):
@@ -70,7 +73,10 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
             # to be initialised. If not then the control vertex is taken from
             # the layer before.
             if layer == 0:
-                control_qubit, control_vertex = self.add_input_vertex()
+                control_qubit, control_vertex = self.add_input_vertex(
+                    measurement_order=measurement_order
+                )
+                measurement_order += 1
                 if input_state[0]:
                     self.X(control_qubit)
             else:
@@ -83,7 +89,10 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
                 # If this is the 0th layer then the target qubit needs to be
                 # initialised.
                 if layer == 0:
-                    target_qubit, target_vertex = self.add_input_vertex()
+                    target_qubit, target_vertex = self.add_input_vertex(
+                        measurement_order=measurement_order
+                    )
+                    measurement_order += 1
                     if input_state[row + 1]:
                         self.X(target_qubit)
                 # If this is the last row then the target vertex is the output
@@ -98,25 +107,49 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
                 cnot_block_vertex_list[layer][row].append(target_vertex)
 
                 # Now the rest of the CNOT block can be constructed.
-                cnot_block_vertex_list[layer][row].append(self.add_graph_vertex())
+                cnot_block_vertex_list[layer][row].append(
+                    self.add_graph_vertex(measurement_order=measurement_order)
+                )
+                measurement_order += 1
                 self.add_edge(
                     vertex_one=cnot_block_vertex_list[layer][row][0],
                     vertex_two=cnot_block_vertex_list[layer][row][2],
                 )
 
-                cnot_block_vertex_list[layer][row].append(self.add_graph_vertex())
+                cnot_block_vertex_list[layer][row].append(
+                    self.add_graph_vertex(measurement_order=measurement_order)
+                )
+                measurement_order += 1
                 self.add_edge(
                     vertex_one=cnot_block_vertex_list[layer][row][1],
                     vertex_two=cnot_block_vertex_list[layer][row][3],
                 )
 
-                cnot_block_vertex_list[layer][row].append(self.add_graph_vertex())
+                if layer == n_layers - 1:
+                    cnot_block_vertex_list[layer][row].append(
+                        self.add_graph_vertex(measurement_order=None)
+                    )
+
+                else:
+                    cnot_block_vertex_list[layer][row].append(
+                        self.add_graph_vertex(measurement_order=measurement_order)
+                    )
+                    measurement_order += 1
                 self.add_edge(
                     vertex_one=cnot_block_vertex_list[layer][row][2],
                     vertex_two=cnot_block_vertex_list[layer][row][4],
                 )
 
-                cnot_block_vertex_list[layer][row].append(self.add_graph_vertex())
+                if (layer == n_layers - 1) and (row == n_rows - 1):
+                    cnot_block_vertex_list[layer][row].append(
+                        self.add_graph_vertex(measurement_order=None)
+                    )
+                else:
+                    cnot_block_vertex_list[layer][row].append(
+                        self.add_graph_vertex(measurement_order=measurement_order)
+                    )
+                    measurement_order += 1
+
                 self.add_edge(
                     vertex_one=cnot_block_vertex_list[layer][row][3],
                     vertex_two=cnot_block_vertex_list[layer][row][5],

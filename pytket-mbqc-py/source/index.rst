@@ -11,8 +11,8 @@ Welcome to pytket-mbqc's documentation!
    :caption: Contents:
 
    qubit_manager
-   graph_circuit
    random_register_manager
+   graph_circuit
 
 
 

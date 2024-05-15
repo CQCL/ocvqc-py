@@ -410,7 +410,7 @@ def test_2q_t_gate_example():
     graph_circuit.corrected_measure(graph_vertex_1_0, t_multiple=0)
 
     # H[0]S[0]
-    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=14)
+    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=13)
     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_0)
     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=2)
 

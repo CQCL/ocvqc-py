@@ -43,7 +43,7 @@ jobs:
         run: ruff format --check
 
       - name: Run Tests
-        run: pytest --cov-report --cov-fail-under=100 term-missing:skip-covered --cov=pytket-mbqc-py/pytket_mbqc_py/ pytket-mbqc-py/tests/ --durations=10
+        run: pytest --cov-fail-under=100 --cov-report term-missing:skip-covered --cov=pytket-mbqc-py/pytket_mbqc_py/ pytket-mbqc-py/tests/ --durations=10
 
 
   Build-Documentation:

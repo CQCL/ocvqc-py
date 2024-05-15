@@ -1,9 +1,10 @@
-from pytket_mbqc_py import QubitManager
-from pytket import Qubit
 import pytest
+from pytket import Qubit
+
+from pytket_mbqc_py import QubitManager
+
 
 def test_simple_measurement():
-
     qubit_mgr = QubitManager(n_physical_qubits=2)
 
     qubit = qubit_mgr.get_qubit()
@@ -24,7 +25,7 @@ def test_simple_measurement():
         match="The qubit q\[1\] is not in use and so cannot be measured. ",
     ):
         qubit_mgr.managed_measure(Qubit(1))
-        
+
     qubit_mgr.managed_measure(qubit)
 
     assert qubit_mgr.available_qubit_list == [Qubit(0), Qubit(1)]

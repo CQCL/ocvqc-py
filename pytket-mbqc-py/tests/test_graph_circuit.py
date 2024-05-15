@@ -593,7 +593,7 @@ def test_mismatched_ordered_measure():
     [((0, 0), (0, 0)), ((0, 1), (0, 1)), ((1, 0), (1, 1)), ((1, 1), (1, 0))],
 )
 def test_cnot_entangled_output(input_state, output_state):
-    graph_circuit = GraphCircuit(n_physical_qubits=3, n_logical_qubits=4)
+    graph_circuit = GraphCircuit(n_physical_qubits=4, n_logical_qubits=4)
     qubit_zero, vertex_zero = graph_circuit.add_input_vertex(measurement_order=0)
 
     if input_state[0]:
@@ -603,6 +603,12 @@ def test_cnot_entangled_output(input_state, output_state):
 
     vertex_one = graph_circuit.add_graph_vertex(measurement_order=None)
 
+    with pytest.raises(
+        Exception,
+        match="Vertex 1 does not have a measurement order and cannot be measured.",
+    ):
+        graph_circuit.corrected_measure(vertex_one)
+
     graph_circuit.add_edge(
         vertex_one=vertex_zero,
         vertex_two=vertex_one,
@@ -610,12 +616,66 @@ def test_cnot_entangled_output(input_state, output_state):
 
     graph_circuit.corrected_measure(vertex_zero)
 
+    with pytest.raises(
+        Exception,
+        match="Vertex 0 has already been measured and cannot be measured again.",
+    ):
+        graph_circuit.corrected_measure(vertex_zero)
+
+    with pytest.raises(
+        Exception,
+        match="Cannot add edge after measure. In particular \[0\] have been measured.",
+    ):
+        graph_circuit.add_edge(
+            vertex_one=vertex_zero,
+            vertex_two=vertex_one,
+        )
+
+    with pytest.raises(
+        Exception,
+        match="Measurement order must be unique. A vertex is already measured at order 0.",
+    ):
+        graph_circuit.add_input_vertex(measurement_order=0)
+
     qubit_two, vertex_two = graph_circuit.add_input_vertex(measurement_order=1)
 
     if input_state[1]:
         graph_circuit.X(qubit_two)
 
     vertex_three = graph_circuit.add_graph_vertex(measurement_order=None)
+
+    with pytest.raises(
+        Exception,
+        match="An insufficient number of initialisation registers were created. A new vertex cannot be added.",
+    ):
+        graph_circuit.add_graph_vertex(measurement_order=None)
+
+    with pytest.raises(
+        Exception,
+        match="Please ensure that edges point towards unmeasured qubits. In this case 3 is an output but 2 is not.",
+    ):
+        graph_circuit.add_edge(
+            vertex_one=vertex_three,
+            vertex_two=vertex_two,
+        )
+
+    with pytest.raises(
+        Exception,
+        match="There is no vertex with the index 4. Existing vertices are \[0, 1, 2, 3\].",
+    ):
+        graph_circuit.add_edge(
+            vertex_one=4,
+            vertex_two=vertex_two,
+        )
+
+    with pytest.raises(
+        Exception,
+        match="There is no vertex with the index 5. Existing vertices are \[0, 1, 2, 3\].",
+    ):
+        graph_circuit.add_edge(
+            vertex_one=vertex_three,
+            vertex_two=5,
+        )
 
     graph_circuit.add_edge(
         vertex_one=vertex_two,
@@ -627,8 +687,13 @@ def test_cnot_entangled_output(input_state, output_state):
         vertex_two=vertex_three,
     )
 
-    graph_circuit.corrected_measure(vertex_two)
+    with pytest.raises(
+        Exception,
+        match="Vertices \[2\] have a measurement order but have not been measured. Please measure them, or set their order to None.",
+    ):
+        output_dict = graph_circuit.get_outputs()
 
+    graph_circuit.corrected_measure(vertex_two)
     output_dict = graph_circuit.get_outputs()
 
     graph_circuit.H(output_dict[3])

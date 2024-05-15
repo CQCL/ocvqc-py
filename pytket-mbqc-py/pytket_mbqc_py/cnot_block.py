@@ -41,6 +41,8 @@ class CNOTBlocksGraphCircuit(GraphCircuit):
         # TODO: n_logical_qubits should be calculated from the given
         # input variables.
 
+        # TODO: It would be better to calculate the measurement
+        # order as the state is built, rather than just incrementing it.
         measurement_order = 0
 
         self.input_state = input_state

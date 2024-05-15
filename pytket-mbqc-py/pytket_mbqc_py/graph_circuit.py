@@ -5,7 +5,7 @@ and automatically adding measurement corrections.
 """
 
 from functools import reduce
-from typing import Dict, List, Optional, Tuple, Union, cast
+from typing import Dict, List, Tuple, Union, cast
 
 import networkx as nx  # type:ignore
 from pytket import Qubit
@@ -98,10 +98,8 @@ class GraphCircuit(RandomRegisterManager):
         measured. This will also apply the appropriate corrections to
         the output qubits.
 
-        :raises Exception: Raised if there are qubits
-            with flow which have not been measured. All
-            qubits with flow must be measured before the MBQC
-            computation can be finalised and the outputs recovered.
+        :raises Exception: Raised if there are vertices
+            with a measurement order which have not been measured.
         :raises Exception: Raised if too many logical qubits
             were requested upon initialisation.
 
@@ -110,6 +108,9 @@ class GraphCircuit(RandomRegisterManager):
             qubits.
         """
 
+        # Checks if too many registers were created. This would not necessarily
+        # be a problem, but it does save on registers, and reduces the
+        # resources allocated to randomness generation.
         if len(self.vertex_init_reg) > len(self.vertex_qubit):
             raise Exception(
                 f"Too many initialisation registers, {len(self.vertex_init_reg)}, were created. "
@@ -135,6 +136,7 @@ class GraphCircuit(RandomRegisterManager):
             raise Exception(
                 f"Vertices {ordered_unmeasured_qubits} have a measurement order "
                 + "but have not been measured. "
+                + "Please measure them, or set their order to None."
             )
 
         # All qubits with flow must be measured. This is to
@@ -486,14 +488,14 @@ class GraphCircuit(RandomRegisterManager):
         :param t_multiple: The angle in which to measure, defaults to 0.
             This defines the rotated hadamard basis to measure in.
         :raises Exception: Raised if this vertex has already been measured.
-        :raises Exception: Raised if there are vertex in the past of this
-            one which have not been measured.
-        :raises Exception: Raised if this vertex does not have flow.
         :raises Exception: Raised if this vertex has no measurement order
+        :raises Exception: Raised if this vertex does not have flow.
         :raises Exception: Raised if this vertex is not the first measured,
             but there is no vertex with order one less than the one considered.
             This would be raised if the order the vertices are measured
             in is not sequential.
+        :raises Exception: Raised if there are vertex in the past of this
+            one which have not been measured.
         """
         # Check that the vertex being measured has not already been measured.
         if self.vertex_measured[vertex]:
@@ -641,16 +643,6 @@ class GraphCircuit(RandomRegisterManager):
 
         # Check that the vertex has at most one flow vertex
         assert len(list(self.flow_graph.successors(vertex))) <= 1
-
-        # Check that his vertex has flow.
-        # If it does not then this is an output vertex
-        # or this is not a valid graph.
-        if len(list(self.flow_graph.successors(vertex))) == 0:
-            raise Exception(
-                f"Vertex {vertex} has no flow. "
-                "It is not possible to perform a corrected measure of a qubit without flow. "
-                "Please give this vertex a flow, or use the get_output to perform the necessary corrections."
-            )
 
         vertex_flow = list(self.flow_graph.successors(vertex))[0]
 

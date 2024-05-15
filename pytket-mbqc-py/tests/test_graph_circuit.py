@@ -592,7 +592,7 @@ def test_mismatched_ordered_measure():
     "input_state, output_state",
     [((0, 0), (0, 0)), ((0, 1), (0, 1)), ((1, 0), (1, 1)), ((1, 1), (1, 0))],
 )
-def test_cnot_low_dept(input_state, output_state):
+def test_cnot_entangled_output(input_state, output_state):
     graph_circuit = GraphCircuit(n_physical_qubits=3, n_logical_qubits=4)
     qubit_zero, vertex_zero = graph_circuit.add_input_vertex(measurement_order=0)
 

@@ -181,32 +181,6 @@ class GraphCircuit(RandomRegisterManager):
             self._apply_z_correction(vertex=vertex)
 
         return output_qubits
-    
-     def _add_vertex_check(self, measurement_order: Union[int, None]) -> None:
-        """Runs checks that there are enough initialisation
-            registers, and that the given order is unique.
-
-        :param measurement_order: The order at which this vertex will
-            be measured. None if the qubit is an output.
-        :raises Exception: Raised if an insufficient number of initialisation
-            registers were created.
-        :raises Exception: Raised if the measurement order given
-            is already in use. That is to say a vertex measurement order
-            must be unique.
-        """
-        if len(self.vertex_qubit) >= len(self.vertex_init_reg):
-            raise Exception(
-                "An insufficient number of initialisation registers "
-                + "were created. A new vertex cannot be added."
-            )
-
-        if (measurement_order is not None) and (
-            measurement_order in self.measurement_order_list
-        ):
-            raise Exception(
-                "Measurement order must be unique. "
-                + f"A vertex is already measured at order {measurement_order}."
-            )
 
     def _add_vertex(self, qubit: Qubit, measurement_order: Union[int, None]) -> int:
         """Add a new vertex to the graph.
@@ -671,3 +645,29 @@ class GraphCircuit(RandomRegisterManager):
             ^ self.vertex_x_corr_reg[vertex_flow][0],
             [self.vertex_x_corr_reg[vertex_flow][0]],
         )
+
+    def _add_vertex_check(self, measurement_order: Union[int, None]) -> None:
+        """Runs checks that there are enough initialisation
+            registers, and that the given order is unique.
+
+        :param measurement_order: The order at which this vertex will
+            be measured. None if the qubit is an output.
+        :raises Exception: Raised if an insufficient number of initialisation
+            registers were created.
+        :raises Exception: Raised if the measurement order given
+            is already in use. That is to say a vertex measurement order
+            must be unique.
+        """
+        if len(self.vertex_qubit) >= len(self.vertex_init_reg):
+            raise Exception(
+                "An insufficient number of initialisation registers "
+                + "were created. A new vertex cannot be added."
+            )
+
+        if (measurement_order is not None) and (
+            measurement_order in self.measurement_order_list
+        ):
+            raise Exception(
+                "Measurement order must be unique. "
+                + f"A vertex is already measured at order {measurement_order}."
+            )

@@ -80,12 +80,7 @@ class GraphCircuit(RandomRegisterManager):
         # random register. This is except for the case of input qubits
         # which are initialised in the 0 state, and in which case this
         # register is overwritten.
-        self.vertex_init_reg = list(
-            self.generate_random_registers(n_registers=n_logical_qubits)
-        )
-
-        # Isolate the initialisation randomness generation from the
-        # rest of the circuit.
+        self.vertex_init_reg = self.generate_random_registers(n_registers=n_logical_qubits)
         self.add_barrier(
             units=cast(List[UnitID], self.qubits) + cast(List[UnitID], self.bits)
         )

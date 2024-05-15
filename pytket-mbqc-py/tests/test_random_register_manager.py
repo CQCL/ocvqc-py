@@ -1,9 +1,39 @@
 from itertools import product
 
-from pytket.circuit.display import render_circuit_jupyter
+import pytest
 from pytket.extensions.quantinuum import QuantinuumAPIOffline, QuantinuumBackend
+from pytket.unit_id import BitRegister
 
 from pytket_mbqc_py import RandomRegisterManager
+
+
+def test_multiple_register_initialisation():
+    rand_reg_mgr = RandomRegisterManager(n_physical_qubits=3)
+    rand_reg_mgr.generate_random_registers(n_registers=2)
+
+    rand_reg_mgr.get_qubit()
+    rand_reg_mgr.generate_random_registers(n_registers=2)
+
+    rand_reg_mgr.get_qubit()
+    rand_reg_mgr.generate_random_registers(n_registers=2)
+
+    assert all(
+        BitRegister(name=f"rand_{index}", size=3) in rand_reg_mgr.c_registers
+        for index in range(6)
+    )
+
+    rand_reg_mgr.get_qubit()
+    with pytest.raises(
+        Exception,
+        match="There are no unused qubits which can be used to generate randomness.",
+    ):
+        rand_reg_mgr.generate_random_registers(n_registers=2)
+
+    with pytest.raises(
+        Exception,
+        match="You have run out of qubits.",
+    ):
+        rand_reg_mgr.get_qubit()
 
 
 def test_random_register_manager():
@@ -12,11 +42,9 @@ def test_random_register_manager():
     rand_reg_mngr = RandomRegisterManager(n_physical_qubits=2)
     n_bits_per_reg = 3
     n_registers = 5
-    reg_list = list(
-        rand_reg_mngr.generate_random_registers(
-            n_registers=n_registers,
-            n_bits_per_reg=n_bits_per_reg,
-        )
+    reg_list = rand_reg_mngr.generate_random_registers(
+        n_registers=n_registers,
+        n_bits_per_reg=n_bits_per_reg,
     )
 
     # Check that there are 3 registers, and that each has 3 bits.

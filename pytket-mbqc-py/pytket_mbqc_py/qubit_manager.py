@@ -79,10 +79,18 @@ class QubitManager(Circuit):
 
         :param qubit: The qubit to be measured.
 
-        :raises Exception: Raised if the qubit to be measured does
-            not belong to the circuit.
+        :raises Exception: Raised if the qubit to be measured is not currently
+            in use. A qubit is in use if it has been initialised with the
+            get_qubit method, but has not yet been measured.
         """
-        if qubit not in self.all_qubit_list:
-            raise Exception(f"The qubit {qubit} has not been initialised.")
+
+        in_use_qubits = set(self.all_qubit_list) - set(self.available_qubit_list)
+        if qubit not in in_use_qubits:
+            raise Exception(
+                f"The qubit {qubit} is not in use and so cannot be measured. "
+                + f"Qubits in use are {in_use_qubits}. "
+                + "For a qubit to be in use it must be initialised with the "
+                + "get_qubit method."
+            )
         self.available_qubit_list.insert(0, qubit)
         self.Measure(qubit=qubit, bit=self.qubit_meas_reg[qubit][0])

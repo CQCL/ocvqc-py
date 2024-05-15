@@ -114,10 +114,6 @@ class RandomRegisterManager(QubitManager):
                 # If this is the first bit to copy to a new register, create
                 # the new register.
                 if bit_index % n_bits_per_reg == 0:
-                    # reg = self.add_c_register(
-                    #     name=f"rand_{bit_index // n_bits_per_reg}",
-                    #     size=n_bits_per_reg,
-                    # )
                     reg = self.add_c_register(
                         name=f"rand_{self._n_random_registers}",
                         size=n_bits_per_reg,

@@ -189,12 +189,6 @@ class GraphCircuit(RandomRegisterManager):
         :param measurement_order: The order at which this vertex will
             be measured. None if the qubit is an output.
         :return: The vertex in the graphs corresponding to this qubit
-
-        :raises Exception: Raised if an insufficient number of initialisation
-            registers were created.
-        :raises Exception: Raised if the measurement order given
-            is already in use. That is to say a vertex measurement order
-            must be unique.
         """
 
         index = len(self.vertex_qubit)
@@ -211,7 +205,18 @@ class GraphCircuit(RandomRegisterManager):
 
         return index
 
-    def _add_vertex_check(self, measurement_order):
+    def _add_vertex_check(self, measurement_order: Union[int, None]) -> None:
+        """Runs checks that there are enough initialisation
+            registers, and that the given order is unique.
+
+        :param measurement_order: The order at which this vertex will
+            be measured. None if the qubit is an output.
+        :raises Exception: Raised if an insufficient number of initialisation
+            registers were created.
+        :raises Exception: Raised if the measurement order given
+            is already in use. That is to say a vertex measurement order
+            must be unique.
+        """
         if len(self.vertex_qubit) >= len(self.vertex_init_reg):
             raise Exception(
                 "An insufficient number of initialisation registers "
@@ -358,7 +363,7 @@ class GraphCircuit(RandomRegisterManager):
                 f"{vertex_one} is measured after {vertex_two}. "
                 + "The respective measurements orders are "
                 + f"{self.measurement_order_list[vertex_one]} and "
-                + f"{self.measurement_order_list[vertex_two]}."
+                + f"{self.measurement_order_list[vertex_two]}. "
                 + "Cannot add edge into the past."
             )
 
@@ -535,12 +540,15 @@ class GraphCircuit(RandomRegisterManager):
         if (
             # safe to cast as we have check that the order is not None.
             (cast(int, self.measurement_order_list[vertex]) > 0)
-            and (self.measurement_order_list[vertex] not in self.measurement_order_list)
+            and (
+                (cast(int, self.measurement_order_list[vertex]) - 1)
+                not in self.measurement_order_list
+            )
         ):
             raise Exception(
                 f"Vertex {vertex} has order "
                 + f"{self.measurement_order_list[vertex]} "
-                + f"but there is no vertex with order {self.measurement_order_list[vertex]}."
+                + f"but there is no vertex with order {cast(int, self.measurement_order_list[vertex]) - 1}."
             )
 
         # List the vertices which have order less than the vertex considered,

@@ -4,6 +4,7 @@ to dedicated registers.
 """
 
 from collections.abc import Iterator
+from typing import List
 
 from pytket.unit_id import Bit, BitRegister
 
@@ -13,14 +14,28 @@ from pytket_mbqc_py.qubit_manager import QubitManager
 class RandomRegisterManager(QubitManager):
     """Class for generating random bits, and managing dedicated registers
     where they are stored.
+
+    :ivar _n_random_registers: The number of random registers which have
+        been generated.
     """
+
+    _n_random_registers: int
+
+    def __init__(self, n_physical_qubits: int) -> None:
+        """Initialisation method
+
+        :param n_physical_qubits: The number of qubits available to the
+            graph state.
+        """
+        self._n_random_registers = 0
+        super().__init__(n_physical_qubits)
 
     def generate_random_registers(
         self,
         n_registers: int,
         n_bits_per_reg: int = 3,
         max_n_randomness_qubits: int = 2,
-    ) -> Iterator[BitRegister]:
+    ) -> List[BitRegister]:
         """Generate registers containing random bits. This is achieved
         by initialising hadamard basis plus states and measuring them.
 
@@ -32,7 +47,7 @@ class RandomRegisterManager(QubitManager):
             be used.
         :raises Exception: Raised if there are no qubits left to use to
             generate randomness.
-        :yield: Registers containing random bits.
+        :return: Registers containing random bits.
         """
 
         if len(self.available_qubit_list) == 0:
@@ -85,25 +100,34 @@ class RandomRegisterManager(QubitManager):
                 self.managed_measure(qubit=qubit)
                 yield self.qubit_meas_reg[qubit][0]
 
-        # For each bit, copy it's value to a persistent
-        # register. This is done in groups of n_bits_per_reg.
-        for bit_index, bit in enumerate(
-            get_random_bits(n_random_bits=n_bits_per_reg * n_registers)
-        ):
-            # If this is the first bit to copy to a new register, create
-            # the new register.
-            if bit_index % n_bits_per_reg == 0:
-                reg = self.add_c_register(
-                    name=f"rand_{bit_index // n_bits_per_reg}",
-                    size=n_bits_per_reg,
+        def get_random_registers() -> Iterator[BitRegister]:
+            """An iterator over registers containing random bits.
+
+            :yield: Register containing random bits.
+            """
+
+            # For each bit, copy it's value to a persistent
+            # register. This is done in groups of n_bits_per_reg.
+            for bit_index, bit in enumerate(
+                get_random_bits(n_random_bits=n_bits_per_reg * n_registers)
+            ):
+                # If this is the first bit to copy to a new register, create
+                # the new register.
+                if bit_index % n_bits_per_reg == 0:
+                    reg = self.add_c_register(
+                        name=f"rand_{self._n_random_registers}",
+                        size=n_bits_per_reg,
+                    )
+
+                # Copy the bit to the persistent register.
+                self.add_classicalexpbox_bit(
+                    expression=reg[bit_index % n_bits_per_reg] | bit,
+                    target=[reg[bit_index % n_bits_per_reg]],
                 )
 
-            # Copy the bit to the persistent register.
-            self.add_classicalexpbox_bit(
-                expression=reg[bit_index % n_bits_per_reg] | bit,
-                target=[reg[bit_index % n_bits_per_reg]],
-            )
+                # If this is the last bit to fill the register, yield the register.
+                if bit_index % n_bits_per_reg == n_bits_per_reg - 1:
+                    self._n_random_registers += 1
+                    yield reg
 
-            # If this is the last bit to fill the register, yield the register.
-            if bit_index % n_bits_per_reg == n_bits_per_reg - 1:
-                yield reg
+        return list(get_random_registers())

@@ -1,6 +1,6 @@
 import pytest
 from pytket.extensions.quantinuum import QuantinuumAPIOffline, QuantinuumBackend
-from pytket.unit_id import BitRegister
+from pytket.unit_id import BitRegister, Qubit
 
 from pytket_mbqc_py import CNOTBlocksGraphCircuit, GraphCircuit
 
@@ -410,7 +410,7 @@ def test_2q_t_gate_example():
     graph_circuit.corrected_measure(graph_vertex_1_0, t_multiple=0)
 
     # H[0]S[0]
-    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=14)
+    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=13)
     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_0)
     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=2)
 
@@ -593,7 +593,8 @@ def test_mismatched_ordered_measure():
     [((0, 0), (0, 0)), ((0, 1), (0, 1)), ((1, 0), (1, 1)), ((1, 1), (1, 0))],
 )
 def test_cnot_entangled_output(input_state, output_state):
-    graph_circuit = GraphCircuit(n_physical_qubits=3, n_logical_qubits=4)
+    graph_circuit = GraphCircuit(n_physical_qubits=4, n_logical_qubits=4)
+
     qubit_zero, vertex_zero = graph_circuit.add_input_vertex(measurement_order=0)
 
     if input_state[0]:
@@ -603,6 +604,12 @@ def test_cnot_entangled_output(input_state, output_state):
 
     vertex_one = graph_circuit.add_graph_vertex(measurement_order=None)
 
+    with pytest.raises(
+        Exception,
+        match="Vertex 1 does not have a measurement order and cannot be measured.",
+    ):
+        graph_circuit.corrected_measure(vertex_one)
+
     graph_circuit.add_edge(
         vertex_one=vertex_zero,
         vertex_two=vertex_one,
@@ -610,12 +617,72 @@ def test_cnot_entangled_output(input_state, output_state):
 
     graph_circuit.corrected_measure(vertex_zero)
 
+    with pytest.raises(
+        Exception,
+        match="Vertex 0 has already been measured and cannot be measured again.",
+    ):
+        graph_circuit.corrected_measure(vertex_zero)
+
+    with pytest.raises(
+        Exception,
+        match="Cannot add edge after measure. In particular \[0\] have been measured.",
+    ):
+        graph_circuit.add_edge(
+            vertex_one=vertex_zero,
+            vertex_two=vertex_one,
+        )
+
+    with pytest.raises(
+        Exception,
+        match="Measurement order must be unique. A vertex is already measured at order 0.",
+    ):
+        graph_circuit.add_input_vertex(measurement_order=0)
+
     qubit_two, vertex_two = graph_circuit.add_input_vertex(measurement_order=1)
 
     if input_state[1]:
         graph_circuit.X(qubit_two)
 
+    with pytest.raises(
+        Exception,
+        match="Too many initialisation registers, 4, were created. Consider setting n_logical_qubits=3 upon initialising this class.",
+    ):
+        graph_circuit.get_outputs()
+
     vertex_three = graph_circuit.add_graph_vertex(measurement_order=None)
+
+    with pytest.raises(
+        Exception,
+        match="An insufficient number of initialisation registers were created. A new vertex cannot be added.",
+    ):
+        graph_circuit.add_graph_vertex(measurement_order=None)
+
+    with pytest.raises(
+        Exception,
+        match="Please ensure that edges point towards unmeasured qubits. In this case 3 is an output but 2 is not.",
+    ):
+        graph_circuit.add_edge(
+            vertex_one=vertex_three,
+            vertex_two=vertex_two,
+        )
+
+    with pytest.raises(
+        Exception,
+        match="There is no vertex with the index 4. Existing vertices are \[0, 1, 2, 3\].",
+    ):
+        graph_circuit.add_edge(
+            vertex_one=4,
+            vertex_two=vertex_two,
+        )
+
+    with pytest.raises(
+        Exception,
+        match="There is no vertex with the index 5. Existing vertices are \[0, 1, 2, 3\].",
+    ):
+        graph_circuit.add_edge(
+            vertex_one=vertex_three,
+            vertex_two=5,
+        )
 
     graph_circuit.add_edge(
         vertex_one=vertex_two,
@@ -627,8 +694,13 @@ def test_cnot_entangled_output(input_state, output_state):
         vertex_two=vertex_three,
     )
 
-    graph_circuit.corrected_measure(vertex_two)
+    with pytest.raises(
+        Exception,
+        match="Vertices \[2\] have a measurement order but have not been measured. Please measure them, or set their order to None.",
+    ):
+        output_dict = graph_circuit.get_outputs()
 
+    graph_circuit.corrected_measure(vertex_two)
     output_dict = graph_circuit.get_outputs()
 
     graph_circuit.H(output_dict[3])
@@ -646,3 +718,87 @@ def test_cnot_entangled_output(input_state, output_state):
     n_shots = 100
     result = backend.run_circuit(circuit=compiled_circuit, n_shots=n_shots)
     assert result.get_counts(cbits=output_meas_reg)[output_state] == n_shots
+
+
+def test_error_messages():
+    graph_circuit = GraphCircuit(n_physical_qubits=6, n_logical_qubits=6)
+
+    vertex_zero = graph_circuit.add_graph_vertex(measurement_order=0)
+    vertex_one = graph_circuit.add_graph_vertex(measurement_order=3)
+    vertex_two = graph_circuit.add_graph_vertex(measurement_order=2)
+    vertex_three = graph_circuit.add_graph_vertex(measurement_order=4)
+    vertex_four = graph_circuit.add_graph_vertex(measurement_order=5)
+    vertex_five = graph_circuit.add_graph_vertex(measurement_order=7)
+
+    with pytest.raises(
+        Exception,
+        match="1 is measured after 0. The respective measurements orders are 3 and 0. Cannot add edge into the past.",
+    ):
+        graph_circuit.add_edge(
+            vertex_one=vertex_one,
+            vertex_two=vertex_zero,
+        )
+
+    graph_circuit.add_edge(
+        vertex_one=vertex_zero,
+        vertex_two=vertex_three,
+    )
+    graph_circuit.add_edge(
+        vertex_one=vertex_zero,
+        vertex_two=vertex_one,
+    )
+
+    with pytest.raises(
+        Exception,
+        match="Adding the edge \(2, 1\) does not define a valid flow. In particular \[0\] are neighbours of 1 but are in the past of 2. As 1 would become the flow of 2 all of the neighbours of 1 must be in the past of 2.",
+    ):
+        graph_circuit.add_edge(
+            vertex_one=vertex_two,
+            vertex_two=vertex_one,
+        )
+
+    graph_circuit.add_edge(
+        vertex_one=vertex_two,
+        vertex_two=vertex_four,
+    )
+
+    with pytest.raises(
+        Exception,
+        match="Adding the edge \(0, 4\) does not define a valid flow. In particular 4 is the flow of \[2\], some of which are measured after 0.",
+    ):
+        graph_circuit.add_edge(
+            vertex_one=vertex_zero,
+            vertex_two=vertex_four,
+        )
+
+    with pytest.raises(
+        Exception,
+        match="Vertex 4 has no flow and cannot be measured.",
+    ):
+        graph_circuit.corrected_measure(vertex=vertex_four)
+
+    graph_circuit.add_edge(
+        vertex_one=vertex_four,
+        vertex_two=vertex_five,
+    )
+
+    graph_circuit.corrected_measure(vertex=vertex_zero)
+
+    with pytest.raises(
+        Exception,
+        match="The vertices \[1, 2, 3\] are ordered to be measured before vertex 4, but are unmeasured.",
+    ):
+        graph_circuit.corrected_measure(vertex=vertex_four)
+
+    with pytest.raises(
+        Exception,
+        match="Vertex 2 has order 2 but there is no vertex with order 1.",
+    ):
+        graph_circuit.corrected_measure(vertex=vertex_two)
+
+
+def test_single_unmeasured_vertex():
+    graph_circuit = GraphCircuit(n_physical_qubits=6, n_logical_qubits=1)
+
+    graph_circuit.add_graph_vertex(measurement_order=None)
+    assert graph_circuit.get_outputs() == {0: Qubit(1)}

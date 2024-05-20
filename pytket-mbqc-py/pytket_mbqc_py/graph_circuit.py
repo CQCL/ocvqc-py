@@ -80,8 +80,8 @@ class GraphCircuit(RandomRegisterManager):
         # random register. This is except for the case of input qubits
         # which are initialised in the 0 state, and in which case this
         # register is overwritten.
-        self.vertex_init_reg = list(
-            self.generate_random_registers(n_registers=n_logical_qubits)
+        self.vertex_init_reg = self.generate_random_registers(
+            n_registers=n_logical_qubits
         )
 
         # Isolate the initialisation randomness generation from the
@@ -192,27 +192,7 @@ class GraphCircuit(RandomRegisterManager):
         :param measurement_order: The order at which this vertex will
             be measured. None if the qubit is an output.
         :return: The vertex in the graphs corresponding to this qubit
-
-        :raises Exception: Raised if an insufficient number of initialisation
-            registers were created.
-        :raises Exception: Raised if the measurement order given
-            is already in use. That is to say a vertex measurement order
-            must be unique.
         """
-
-        if len(self.vertex_qubit) >= len(self.vertex_init_reg):
-            raise Exception(
-                "An insufficient number of initialisation registers "
-                + "were created. A new vertex cannot be added."
-            )
-
-        if (measurement_order is not None) and (
-            measurement_order in self.measurement_order_list
-        ):
-            raise Exception(
-                "Measurement order must be unique. "
-                + f"A vertex is already measured at order {measurement_order}."
-            )
 
         index = len(self.vertex_qubit)
         self.entanglement_graph.add_node(node_for_adding=index)
@@ -242,6 +222,9 @@ class GraphCircuit(RandomRegisterManager):
 
         :return: The qubit added, and the corresponding index in the graph.
         """
+
+        self._add_vertex_check(measurement_order)
+
         qubit = self.get_qubit()
         index = self._add_vertex(qubit=qubit, measurement_order=measurement_order)
 
@@ -259,6 +242,8 @@ class GraphCircuit(RandomRegisterManager):
 
         :return: The index of the vertex added.
         """
+        self._add_vertex_check(measurement_order)
+
         qubit = self.get_qubit()
         self.H(qubit)
         index = self._add_vertex(qubit=qubit, measurement_order=measurement_order)
@@ -313,13 +298,34 @@ class GraphCircuit(RandomRegisterManager):
             from that inverse flow to propagate to vertex_one.
         """
 
+        if vertex_one not in self.entanglement_graph.nodes:
+            raise Exception(
+                f"There is no vertex with the index {vertex_one}. "
+                + f"Existing vertices are {list(self.entanglement_graph.nodes)}."
+            )
+
+        if vertex_two not in self.entanglement_graph.nodes:
+            raise Exception(
+                f"There is no vertex with the index {vertex_two}. "
+                + f"Existing vertices are {list(self.entanglement_graph.nodes)}."
+            )
+
+        # If edges are in the entanglement_graph they should be in
+        # the flow_graph. It would be a bug if not.
+        assert (
+            vertex_one in self.flow_graph.nodes
+        ), f"Vertex {vertex_one} missing from flow graph"
+        assert (
+            vertex_two in self.flow_graph.nodes
+        ), f"Vertex {vertex_two} missing from flow graph"
+
         # Check that edges only point towards unmeasured vertices.
         # This ensures that unmeasured vertices do not have flow.
         if (self.measurement_order_list[vertex_one] is None) and (
             self.measurement_order_list[vertex_two] is not None
         ):
             raise Exception(
-                "Please ensure that edge point towards unmeasured qubits. "
+                "Please ensure that edges point towards unmeasured qubits. "
                 + f"In this case {vertex_one} is an output but {vertex_two} "
                 + "is not."
             )
@@ -334,30 +340,9 @@ class GraphCircuit(RandomRegisterManager):
                 f"{vertex_one} is measured after {vertex_two}. "
                 + "The respective measurements orders are "
                 + f"{self.measurement_order_list[vertex_one]} and "
-                + f"{self.measurement_order_list[vertex_two]}."
+                + f"{self.measurement_order_list[vertex_two]}. "
                 + "Cannot add edge into the past."
             )
-
-        if vertex_one not in self.entanglement_graph.nodes:
-            raise Exception(
-                f"There is no vertex with the index {vertex_one}. "
-                + "Use the entanglement_graph attribute to see existing vertices."
-            )
-
-        if vertex_two not in self.entanglement_graph.nodes:
-            raise Exception(
-                f"There is no vertex with the index {vertex_two}. "
-                + "Use the entanglement_graph attribute to see existing vertices."
-            )
-
-        # If edges are in the entanglement_graph they should be in
-        # the flow_graph. It would be a bug if not.
-        assert (
-            vertex_one in self.flow_graph.nodes
-        ), f"Vertex {vertex_one} missing from flow graph"
-        assert (
-            vertex_two in self.flow_graph.nodes
-        ), f"Vertex {vertex_two} missing from flow graph"
 
         if self.vertex_measured[vertex_one] or self.vertex_measured[vertex_two]:
             raise Exception(
@@ -505,7 +490,7 @@ class GraphCircuit(RandomRegisterManager):
 
         if self.measurement_order_list[vertex] is None:
             raise Exception(
-                "This vertex does not have a measurement order and "
+                f"Vertex {vertex} does not have a measurement order and "
                 + "cannot be measured."
             )
 
@@ -532,12 +517,15 @@ class GraphCircuit(RandomRegisterManager):
         if (
             # safe to cast as we have check that the order is not None.
             (cast(int, self.measurement_order_list[vertex]) > 0)
-            and (self.measurement_order_list[vertex] not in self.measurement_order_list)
+            and (
+                (cast(int, self.measurement_order_list[vertex]) - 1)
+                not in self.measurement_order_list
+            )
         ):
             raise Exception(
                 f"Vertex {vertex} has order "
                 + f"{self.measurement_order_list[vertex]} "
-                + f"but there is no vertex with order {self.measurement_order_list[vertex]}."
+                + f"but there is no vertex with order {cast(int, self.measurement_order_list[vertex]) - 1}."
             )
 
         # List the vertices which have order less than the vertex considered,
@@ -657,3 +645,29 @@ class GraphCircuit(RandomRegisterManager):
             ^ self.vertex_x_corr_reg[vertex_flow][0],
             [self.vertex_x_corr_reg[vertex_flow][0]],
         )
+
+    def _add_vertex_check(self, measurement_order: Union[int, None]) -> None:
+        """Runs checks that there are enough initialisation
+            registers, and that the given order is unique.
+
+        :param measurement_order: The order at which this vertex will
+            be measured. None if the qubit is an output.
+        :raises Exception: Raised if an insufficient number of initialisation
+            registers were created.
+        :raises Exception: Raised if the measurement order given
+            is already in use. That is to say a vertex measurement order
+            must be unique.
+        """
+        if len(self.vertex_qubit) >= len(self.vertex_init_reg):
+            raise Exception(
+                "An insufficient number of initialisation registers "
+                + "were created. A new vertex cannot be added."
+            )
+
+        if (measurement_order is not None) and (
+            measurement_order in self.measurement_order_list
+        ):
+            raise Exception(
+                "Measurement order must be unique. "
+                + f"A vertex is already measured at order {measurement_order}."
+            )

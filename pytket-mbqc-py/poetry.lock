@@ -2629,41 +2629,41 @@ tests = ["pytest"]
 
 [[package]]
 name = "pytket-qir"
-version = "0.9.0"
+version = "0.11.0"
 description = "Extension for pytket, providing functions for conversion into to qir"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "pytket_qir-0.9.0-py3-none-any.whl", hash = "sha256:2ecd74db10eb6aaccd9fe7c80635b1d368d1a1f70cdcc5e4a30abf661cff8424"},
+    {file = "pytket_qir-0.11.0-py3-none-any.whl", hash = "sha256:82d220e9dc6f5b54856b333214ad125a26341f16154744b85280fe58ffbef477"},
 ]
 
 [package.dependencies]
 pyqir = "0.10.0"
-pytket = ">=1.26,<2.0"
+pytket = ">=1.28,<2.0"
 
 [[package]]
 name = "pytket-quantinuum"
-version = "0.33.0"
+version = "0.34.0"
 description = "Extension for pytket, providing access to Quantinuum backends"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "pytket_quantinuum-0.33.0-py3-none-any.whl", hash = "sha256:70163d6e74b7c2150dfea0fcfd585f65be44a3b7bf44baff3b9d8d5e816e208c"},
+    {file = "pytket_quantinuum-0.34.0-py3-none-any.whl", hash = "sha256:98acf6e44412225861b6ada78517a7a905051a1c5639a5cc85681972c0345054"},
 ]
 
 [package.dependencies]
 msal = ">=1.18,<2.0"
 nest-asyncio = ">=1.2"
 pyjwt = ">=2.4,<3.0"
-pytket = ">=1.27,<2.0"
-pytket-qir = ">=0.9.0,<0.10.0"
+pytket = ">=1.28,<2.0"
+pytket-qir = ">=0.11.0,<0.12.0"
 requests = ">=2.2"
 types-requests = "*"
 websockets = ">=7.0"
 
 [package.extras]
-calendar = ["matplotlib (>=3.8.3,<3.9.0)", "pandas (>=2.2.1,<2.3.0)"]
-pecos = ["pytket-pecos (>=0.1.24,<0.2.0)"]
+calendar = ["matplotlib (>=3.8.3,<3.10.0)", "pandas (>=2.2.1,<2.3.0)"]
+pecos = ["pytket-pecos (>=0.1.27,<0.2.0)"]
 
 [[package]]
 name = "pywin32"
@@ -3755,4 +3755,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "<3.12,>=3.10"
-content-hash = "89b536f04b4d5229561a86bd0a7de95aaee49660b27588894165f2f26d6ae313"
+content-hash = "2eb2a873aaf9974b6bd6d2eb7d9f3eb37595b47e5cada34821e0d6c6abed85d5"

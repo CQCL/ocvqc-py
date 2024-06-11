@@ -20,7 +20,7 @@ py = "^1.11.0"
 docstr-coverage = "^2.3.2"
 sphinx = "^7.3.7"
 sphinx-autodoc-typehints = "^2.1.1"
-nbmake = "^1.5.3"
+nbmake = "^1.5.4"
 
 [build-system]
 requires = ["poetry-core"]

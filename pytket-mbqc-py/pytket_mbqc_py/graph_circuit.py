@@ -9,7 +9,7 @@ from typing import Dict, List, Tuple, Union, cast
 
 import networkx as nx  # type:ignore
 from pytket import Qubit
-from pytket.circuit.logic_exp import BitLogicExp
+from pytket.circuit.logic_exp import BitLogicExp, BitZero
 from pytket.unit_id import BitRegister, UnitID
 
 from pytket_mbqc_py.random_register_manager import RandomRegisterManager
@@ -415,7 +415,7 @@ class GraphCircuit(RandomRegisterManager):
             v_of_edge=vertex_two,
         )
 
-    def _get_z_correction_expression(self, vertex: int) -> Union[None, BitLogicExp]:
+    def _get_z_correction_expression(self, vertex: int) -> BitLogicExp:
         """Create logical expression by taking the parity of
         the X corrections that have to be applied to the neighbouring
         qubits. If there are no neighbours then None will be returned.
@@ -432,7 +432,7 @@ class GraphCircuit(RandomRegisterManager):
 
         # This happens of this vertex has no neighbours.
         if len(neighbour_reg_list) == 0:
-            return None
+            return BitZero()
 
         return reduce(lambda a, b: a ^ b, neighbour_reg_list)
 
@@ -444,11 +444,10 @@ class GraphCircuit(RandomRegisterManager):
         :param vertex: Vertex to be corrected.
         """
         condition = self._get_z_correction_expression(vertex=vertex)
-        if condition is not None:
-            self.Z(
-                self.vertex_qubit[vertex],
-                condition=condition,
-            )
+        self.Z(
+            self.vertex_qubit[vertex],
+            condition=condition,
+        )
 
     def _apply_classical_z_correction(self, vertex: int) -> None:
         """Apply Z correction on measurement result. This correction is calculated

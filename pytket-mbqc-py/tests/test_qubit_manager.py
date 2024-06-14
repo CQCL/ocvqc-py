@@ -7,7 +7,12 @@ from pytket_mbqc_py import QubitManager
 def test_simple_measurement():
     qubit_mgr = QubitManager(n_physical_qubits=2)
 
-    qubit = qubit_mgr.get_qubit()
+    reg = qubit_mgr.add_c_register(
+        name='meas_reg',
+        size=1,
+    )
+
+    qubit = qubit_mgr.get_qubit(measure_bit=reg[0])
 
     assert qubit_mgr.available_qubit_list == [Qubit(1)]
     assert qubit_mgr.all_qubit_list == [Qubit(0), Qubit(1)]

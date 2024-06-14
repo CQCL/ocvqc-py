@@ -10,12 +10,13 @@ from typing import Dict, List, Tuple, Union, cast
 import networkx as nx  # type:ignore
 from pytket import Qubit
 from pytket.circuit.logic_exp import BitLogicExp, BitZero
-from pytket.unit_id import BitRegister, UnitID
+from pytket.unit_id import BitRegister, UnitID, Bit
 
 from pytket_mbqc_py.random_register_manager import RandomRegisterManager
+from pytket_mbqc_py.qubit_manager import QubitManager
 
 
-class GraphCircuit(RandomRegisterManager):
+class GraphCircuit(QubitManager):
     """Class for the automated construction of MBQC computations.
     In particular only graphs with valid flow can be constructed.
     Graph state construction and measurement corrections are added
@@ -98,6 +99,67 @@ class GraphCircuit(RandomRegisterManager):
         self.add_barrier(
             units=cast(List[UnitID], self.qubits) + cast(List[UnitID], self.bits)
         )
+
+    def populate_random_bits(
+        self,
+        bit_list: List[Bit],
+        max_n_randomness_qubits: int = 2,
+    ):
+        """Populate the given bits with random values. This is achieved
+        by initialising hadamard basis plus states and measuring them.
+
+        :param bit_list: _description_
+        :param max_n_randomness_qubits: The maximum number of qubits to use
+            to generate randomness. If a number of qubits less than this
+            number are actually available then the number available will
+            be used., defaults to 2
+        :type max_n_randomness_qubits: int, optional
+        :raises Exception: Raised if there are no qubits left to use to
+            generate randomness.
+        """
+        
+        if len(self.available_qubit_list) == 0:
+            raise Exception(
+                "There are no unused qubits "
+                + "which can be used to generate randomness."
+            )
+        
+        # The number of qubits used is the smaller of the maximum number set
+        # by the user, or the number which is available.
+        n_randomness_qubits = min(
+            len(self.available_qubit_list), max_n_randomness_qubits
+        )
+        
+        def generate_randomness(
+            list_chunk: List[Bit]
+        ) -> None:
+            """Write randomness to given bits.
+
+            :param list_chunk: List of bits to write to. Note that this should
+                be of length at most the number of qubits to be used to
+                generate randomness.
+            """
+            # Initialise all qubits.
+            qubit_list = [
+                self.get_qubit(measure_bit=measure_bit)
+                for measure_bit in list_chunk
+            ]
+
+            # For each qubit, initialise and measure.
+            for qubit in qubit_list:
+                self.H(qubit=qubit)
+                self.managed_measure(qubit=qubit)
+        
+        # We repeatedly initialise and measure qubits in groups
+        # of size n_randomness_qubits. This allows randomness generation
+        # to be done in parallel where possible.
+        for chunk in range(len(bit_list) // n_randomness_qubits):
+            list_chunk = bit_list[chunk * max_n_randomness_qubits:(chunk+1) * n_randomness_qubits]
+            generate_randomness(list_chunk=list_chunk)
+            
+        # Generate the remaining randomness.
+        list_chunk = bit_list[(chunk+1)*n_randomness_qubits:]
+        generate_randomness(list_chunk=list_chunk)
 
     def get_outputs(self) -> Dict[int, Qubit]:
         """Return the output qubits. Output qubits are those that
@@ -235,7 +297,7 @@ class GraphCircuit(RandomRegisterManager):
 
         # In the case of input qubits, the initialisation is not random.
         # As such the initialisation register should be set to 0.
-        self.add_c_setbits([0] * 3, self.vertex_reg[index].to_list()[1:4])
+        self.add_c_setbits([False] * 3, self.vertex_reg[index].to_list()[1:4])
 
         return (qubit, index)
 

@@ -37,7 +37,7 @@ class QubitManager(Circuit):
         """
         self.available_qubit_list = [Qubit(index=i) for i in range(n_physical_qubits)]
         self.all_qubit_list = [Qubit(index=i) for i in range(n_physical_qubits)]
-        self.qubit_meas_bit = dict()
+        self.qubit_meas_bit: Dict[Qubit, Bit] = dict()
         self.physical_qubits_used = set()
 
         super().__init__()
@@ -58,7 +58,7 @@ class QubitManager(Circuit):
         qubit = self.available_qubit_list.pop(0)
         self.physical_qubits_used.add(qubit)
         self.qubit_meas_bit[qubit] = measure_bit
-        self.add_c_setbits([0], [self.qubit_meas_bit[qubit]])
+        self.add_c_setbits([False], [self.qubit_meas_bit[qubit]])
         self.Reset(qubit=qubit)
 
         return qubit

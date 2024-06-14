@@ -645,7 +645,7 @@ def test_cnot_entangled_output(input_state, output_state):
 
     with pytest.raises(
         Exception,
-        match="Too many initialisation registers, 4, were created. Consider setting n_logical_qubits=3 upon initialising this class.",
+        match="Too many vertex registers, 4, were created. Consider setting n_logical_qubits=3 upon initialising this class.",
     ):
         graph_circuit.get_outputs()
 

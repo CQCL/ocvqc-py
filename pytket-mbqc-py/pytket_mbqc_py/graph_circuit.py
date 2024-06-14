@@ -106,16 +106,15 @@ class GraphCircuit(QubitManager):
         self,
         bit_list: List[Bit],
         max_n_randomness_qubits: int = 2,
-    ):
+    ) -> None:
         """Populate the given bits with random values. This is achieved
         by initialising hadamard basis plus states and measuring them.
 
-        :param bit_list: _description_
+        :param bit_list: List of bits to be populated with randomness.
         :param max_n_randomness_qubits: The maximum number of qubits to use
             to generate randomness. If a number of qubits less than this
             number are actually available then the number available will
             be used., defaults to 2
-        :type max_n_randomness_qubits: int, optional
         :raises Exception: Raised if there are no qubits left to use to
             generate randomness.
         """
@@ -144,7 +143,7 @@ class GraphCircuit(QubitManager):
                 self.get_qubit(measure_bit=measure_bit) for measure_bit in list_chunk
             ]
 
-            # For each qubit, initialise and measure.
+            # For each qubit, initialise, rotate, and measure.
             for qubit in qubit_list:
                 self.H(qubit=qubit)
                 self.managed_measure(qubit=qubit)

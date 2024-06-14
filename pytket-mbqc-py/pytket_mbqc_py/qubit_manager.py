@@ -26,7 +26,6 @@ class QubitManager(Circuit):
 
     available_qubit_list: List[Qubit]
     all_qubit_list: List[Qubit]
-    # qubit_meas_reg: Dict[Qubit, BitRegister]
     physical_qubits_used: set[Qubit]
 
     def __init__(self, n_physical_qubits: int) -> None:
@@ -38,19 +37,10 @@ class QubitManager(Circuit):
         """
         self.available_qubit_list = [Qubit(index=i) for i in range(n_physical_qubits)]
         self.all_qubit_list = [Qubit(index=i) for i in range(n_physical_qubits)]
-        # self.qubit_meas_reg = {
-        #     qubit: BitRegister(name=f"meas_{i}", size=1)
-        #     for i, qubit in enumerate(self.available_qubit_list)
-        # }
         self.qubit_meas_bit = dict()
         self.physical_qubits_used = set()
 
-        # self.qubits_created = 0
-
         super().__init__()
-
-        # for meas_reg in self.qubit_meas_reg.values():
-        #     self.add_c_register(register=meas_reg)
 
         for qubit in self.all_qubit_list:
             self.add_qubit(id=qubit)
@@ -67,16 +57,9 @@ class QubitManager(Circuit):
 
         qubit = self.available_qubit_list.pop(0)
         self.physical_qubits_used.add(qubit)
-        # self.qubit_meas_reg[qubit] = self.add_c_register(
-        #     name=f'meas_{self.qubits_created}', size=1
-        # )
         self.qubit_meas_bit[qubit] = measure_bit
-        # self.add_c_setreg(0, self.qubit_meas_reg[qubit])
-        # print(self.qubit_meas_bit[qubit])
         self.add_c_setbits([0], [self.qubit_meas_bit[qubit]])
         self.Reset(qubit=qubit)
-
-        # self.qubits_created += 1
 
         return qubit
 
@@ -101,5 +84,4 @@ class QubitManager(Circuit):
                 + "get_qubit method."
             )
         self.available_qubit_list.insert(0, qubit)
-        # self.Measure(qubit=qubit, bit=self.qubit_meas_reg[qubit][0])
         self.Measure(qubit=qubit, bit=self.qubit_meas_bit[qubit])

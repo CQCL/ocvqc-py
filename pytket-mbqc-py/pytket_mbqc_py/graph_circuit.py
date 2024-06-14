@@ -26,9 +26,10 @@ class GraphCircuit(RandomRegisterManager):
     :ivar vertex_qubit: List mapping graph vertex to corresponding qubits.
     :ivar vertex_measured: List indicating if vertex has been measured.
     :ivar vertex_reg: List mapping vertex to the its register.
-        In particular this is a 5 bit register
-        with the 0th entry storing the measurement result, the 1s giving the T rotation, the 2nd giving the
-        S rotation, and the 3rd giving the Z rotation, and the 4th storing the X correction.
+        In particular this is a 5 bit register with the 0th entry storing
+        the measurement result, the 1st giving the random T rotation, the 2nd
+        giving the S rotation, the 3rd giving the Z rotation, and
+        the 4th storing the X correction.
     :ivar measurement_order_list: List of vertex measurement order.
         Entry i corresponds to the position in the order at which
         vertex i is measured. If None then vertex is taken not to be
@@ -64,23 +65,6 @@ class GraphCircuit(RandomRegisterManager):
 
         self.measurement_order_list = []
 
-        # We need to save the x correction information long term.
-        # This is why there is one register per vertex, as these
-        # values cannot be overwritten. They are saved long term
-        # as they are needed to calculate z corrections on
-        # neighbouring qubits, which could be needed after the
-        # vertex has been measured.
-        # self.vertex_x_corr_reg = []
-
-        # Generate one random register per vertex.
-        # When qubits are added they will be initialised in this
-        # random register. This is except for the case of input qubits
-        # which are initialised in the 0 state, and in which case this
-        # register is overwritten.
-        # self.vertex_init_reg = self.generate_random_registers(
-        #     n_registers=n_logical_qubits
-        # )
-
         # There is one register per vertex.
         # The bits in the register are as follows:
         #   - 0 : Storage for measurement results.
@@ -88,6 +72,16 @@ class GraphCircuit(RandomRegisterManager):
         #   - 2 : Second random initialisation bit.
         #   - 3 : Third random initialisation bit.
         #   - 4 : X correction register.
+        # When qubits are added they will be initialised in this
+        # random register. This is except for the case of input qubits
+        # which are initialised in the 0 state, and in which case this
+        # register is overwritten.
+        # We need to save the x correction information long term.
+        # This is why there is one register per vertex, as these
+        # values cannot be overwritten. They are saved long term
+        # as they are needed to calculate z corrections on
+        # neighbouring qubits, which could be needed after the
+        # vertex has been measured.
         self.vertex_reg = [
             self.add_c_register(
                 name=f'vertex_{vertex_index}',
@@ -197,7 +191,7 @@ class GraphCircuit(RandomRegisterManager):
 
         return output_qubits
 
-    def _add_vertex(self, qubit: Qubit, measurement_order: Union[int, None]) -> int:
+    def _add_vertex(self, qubit: Qubit, measurement_order: Union[int, None]) -> None:
         """Add a new vertex to the graph.
         This requires that the vertex is added to the
         entanglement and flow graphs. A register to save
@@ -213,15 +207,9 @@ class GraphCircuit(RandomRegisterManager):
         self.entanglement_graph.add_node(node_for_adding=index)
         self.flow_graph.add_node(node_for_adding=index)
 
-        # x_corr_reg = BitRegister(name=f"x_corr_{index}", size=1)
-        # self.add_c_register(register=x_corr_reg)
-
-        # self.vertex_x_corr_reg.append(x_corr_reg)
         self.vertex_qubit.append(qubit)
         self.vertex_measured.append(False)
         self.measurement_order_list.append(measurement_order)
-
-        # return index
 
     def add_input_vertex(
         self, measurement_order: Union[int, None]
@@ -476,18 +464,11 @@ class GraphCircuit(RandomRegisterManager):
         :param vertex: Vertex to be corrected.
         """
         condition = self._get_z_correction_expression(vertex=vertex)
-        # if condition is not None:
-        #     self.add_classicalexpbox_bit(
-        #         expression=self.qubit_meas_reg[self.vertex_qubit[vertex]][0]
-        #         ^ condition,
-        #         target=[self.qubit_meas_reg[self.vertex_qubit[vertex]][0]],
-        #     )
-        if condition is not None:
-            self.add_classicalexpbox_bit(
-                expression=self.vertex_reg[vertex][0]
-                ^ condition,
-                target=[self.vertex_reg[vertex][0]],
-            )
+        self.add_classicalexpbox_bit(
+            expression=self.vertex_reg[vertex][0]
+            ^ condition,
+            target=[self.vertex_reg[vertex][0]],
+        )
 
     def corrected_measure(self, vertex: int, t_multiple: int = 0) -> None:
         """Perform a measurement, applying the appropriate corrections.
@@ -577,7 +558,6 @@ class GraphCircuit(RandomRegisterManager):
 
         # Apply X correction according to correction register.
         # This is to correct for measurement outcomes.
-        # print(self.vertex_reg[vertex].to_list())
         self.X(
             self.vertex_qubit[vertex],
             condition=self.vertex_reg[vertex][4],

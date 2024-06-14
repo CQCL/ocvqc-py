@@ -802,3 +802,30 @@ def test_single_unmeasured_vertex():
 
     graph_circuit.add_graph_vertex(measurement_order=None)
     assert graph_circuit.get_outputs() == {0: Qubit(1)}
+
+
+def test_too_few_qubits():
+    circuit = GraphCircuit(
+        n_physical_qubits=2,
+        n_logical_qubits=2,
+    )
+    reg = circuit.add_c_register(
+        name="my_reg",
+        size=3,
+    )
+    circuit.get_qubit(reg[0])
+    circuit.get_qubit(reg[1])
+
+    with pytest.raises(
+        Exception,
+        match="You have run out of qubits.",
+    ):
+        circuit.get_qubit(reg[2])
+
+    with pytest.raises(
+        Exception,
+        match="There are no unused qubits which can be used to generate randomness.",
+    ):
+        circuit.populate_random_bits(
+            bit_list=reg[2],
+        )

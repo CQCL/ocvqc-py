@@ -8,7 +8,7 @@ def test_simple_measurement():
     qubit_mgr = QubitManager(n_physical_qubits=2)
 
     reg = qubit_mgr.add_c_register(
-        name='meas_reg',
+        name="meas_reg",
         size=1,
     )
 

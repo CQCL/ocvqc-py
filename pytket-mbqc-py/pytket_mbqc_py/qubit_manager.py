@@ -6,7 +6,7 @@ In particular for measuring and reusing qubits.
 from typing import Dict, List
 
 from pytket import Circuit
-from pytket.unit_id import BitRegister, Qubit, Bit
+from pytket.unit_id import Bit, Qubit
 
 
 class QubitManager(Circuit):

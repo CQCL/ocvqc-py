@@ -10,9 +10,8 @@ from typing import Dict, List, Tuple, Union, cast
 import networkx as nx  # type:ignore
 from pytket import Qubit
 from pytket.circuit.logic_exp import BitLogicExp, BitZero
-from pytket.unit_id import BitRegister, UnitID, Bit
+from pytket.unit_id import Bit, BitRegister, UnitID
 
-from pytket_mbqc_py.random_register_manager import RandomRegisterManager
 from pytket_mbqc_py.qubit_manager import QubitManager
 
 
@@ -85,13 +84,16 @@ class GraphCircuit(QubitManager):
         # vertex has been measured.
         self.vertex_reg = [
             self.add_c_register(
-                name=f'vertex_{vertex_index}',
+                name=f"vertex_{vertex_index}",
                 size=5,
-            ) for vertex_index in range(n_logical_qubits)
+            )
+            for vertex_index in range(n_logical_qubits)
         ]
 
         self.populate_random_bits(
-            bit_list = [bit for register in self.vertex_reg for bit in register.to_list()[1:4]]
+            bit_list=[
+                bit for register in self.vertex_reg for bit in register.to_list()[1:4]
+            ]
         )
 
         # Isolate the initialisation randomness generation from the
@@ -117,22 +119,20 @@ class GraphCircuit(QubitManager):
         :raises Exception: Raised if there are no qubits left to use to
             generate randomness.
         """
-        
+
         if len(self.available_qubit_list) == 0:
             raise Exception(
                 "There are no unused qubits "
                 + "which can be used to generate randomness."
             )
-        
+
         # The number of qubits used is the smaller of the maximum number set
         # by the user, or the number which is available.
         n_randomness_qubits = min(
             len(self.available_qubit_list), max_n_randomness_qubits
         )
-        
-        def generate_randomness(
-            list_chunk: List[Bit]
-        ) -> None:
+
+        def generate_randomness(list_chunk: List[Bit]) -> None:
             """Write randomness to given bits.
 
             :param list_chunk: List of bits to write to. Note that this should
@@ -141,24 +141,25 @@ class GraphCircuit(QubitManager):
             """
             # Initialise all qubits.
             qubit_list = [
-                self.get_qubit(measure_bit=measure_bit)
-                for measure_bit in list_chunk
+                self.get_qubit(measure_bit=measure_bit) for measure_bit in list_chunk
             ]
 
             # For each qubit, initialise and measure.
             for qubit in qubit_list:
                 self.H(qubit=qubit)
                 self.managed_measure(qubit=qubit)
-        
+
         # We repeatedly initialise and measure qubits in groups
         # of size n_randomness_qubits. This allows randomness generation
         # to be done in parallel where possible.
         for chunk in range(len(bit_list) // n_randomness_qubits):
-            list_chunk = bit_list[chunk * max_n_randomness_qubits:(chunk+1) * n_randomness_qubits]
+            list_chunk = bit_list[
+                chunk * max_n_randomness_qubits : (chunk + 1) * n_randomness_qubits
+            ]
             generate_randomness(list_chunk=list_chunk)
-            
+
         # Generate the remaining randomness.
-        list_chunk = bit_list[(chunk+1)*n_randomness_qubits:]
+        list_chunk = bit_list[(chunk + 1) * n_randomness_qubits :]
         generate_randomness(list_chunk=list_chunk)
 
     def get_outputs(self) -> Dict[int, Qubit]:
@@ -527,8 +528,7 @@ class GraphCircuit(QubitManager):
         """
         condition = self._get_z_correction_expression(vertex=vertex)
         self.add_classicalexpbox_bit(
-            expression=self.vertex_reg[vertex][0]
-            ^ condition,
+            expression=self.vertex_reg[vertex][0] ^ condition,
             target=[self.vertex_reg[vertex][0]],
         )
 
@@ -635,9 +635,7 @@ class GraphCircuit(QubitManager):
             # Required to invert random T from initialisation.
             # This additional term is required to account for the case where
             # the correcting T is commuted through an X correction.
-            condition=(
-                self.vertex_reg[vertex][1] & self.vertex_reg[vertex][4]
-            ),
+            condition=(self.vertex_reg[vertex][1] & self.vertex_reg[vertex][4]),
         )
 
         self.S(
@@ -708,8 +706,7 @@ class GraphCircuit(QubitManager):
         # Add an x correction to the flow of the
         # measured vertex.
         self.add_classicalexpbox_bit(
-            self.vertex_reg[vertex][0]
-            ^ self.vertex_reg[vertex_flow][4],
+            self.vertex_reg[vertex][0] ^ self.vertex_reg[vertex_flow][4],
             [self.vertex_reg[vertex_flow][4]],
         )
 

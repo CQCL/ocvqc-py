@@ -645,7 +645,7 @@ def test_cnot_entangled_output(input_state, output_state):
 
     with pytest.raises(
         Exception,
-        match="Too many initialisation registers, 4, were created. Consider setting n_logical_qubits=3 upon initialising this class.",
+        match="Too many vertex registers, 4, were created. Consider setting n_logical_qubits=3 upon initialising this class.",
     ):
         graph_circuit.get_outputs()
 
@@ -802,3 +802,67 @@ def test_single_unmeasured_vertex():
 
     graph_circuit.add_graph_vertex(measurement_order=None)
     assert graph_circuit.get_outputs() == {0: Qubit(1)}
+
+
+def test_too_few_qubits():
+    circuit = GraphCircuit(
+        n_physical_qubits=2,
+        n_logical_qubits=2,
+    )
+    reg = circuit.add_c_register(
+        name="my_reg",
+        size=3,
+    )
+    circuit.get_qubit(reg[0])
+    circuit.get_qubit(reg[1])
+
+    with pytest.raises(
+        Exception,
+        match="You have run out of qubits.",
+    ):
+        circuit.get_qubit(reg[2])
+
+    with pytest.raises(
+        Exception,
+        match="There are no unused qubits which can be used to generate randomness.",
+    ):
+        circuit.populate_random_bits(
+            bit_list=reg[2],
+        )
+
+
+def test_randomness_generation():
+    circuit = GraphCircuit(
+        n_physical_qubits=3,
+        n_logical_qubits=2,
+    )
+
+    reg_one = circuit.add_c_register(
+        name="my_first_random_reg",
+        size=16,
+    )
+    circuit.populate_random_bits(bit_list=reg_one.to_list())
+
+    reg_two = circuit.add_c_register(
+        name="my_second_random_reg",
+        size=32,
+    )
+    circuit.populate_random_bits(bit_list=reg_two.to_list())
+
+    backend = QuantinuumBackend(
+        device_name="H1-1LE", api_handler=QuantinuumAPIOffline()
+    )
+    n_shots = 1000
+
+    compiled_circuit = backend.get_compiled_circuit(circuit)
+    result = backend.run_circuit(
+        circuit=compiled_circuit,
+        n_shots=n_shots,
+        seed=0,
+    )
+
+    for cbits in reg_one:
+        assert abs(result.get_counts(cbits=[cbits])[(0,)] - n_shots / 2) < 35
+
+    for cbits in reg_two:
+        assert abs(result.get_counts(cbits=[cbits])[(0,)] - n_shots / 2) < 35

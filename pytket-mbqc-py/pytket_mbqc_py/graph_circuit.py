@@ -560,8 +560,8 @@ class GraphCircuit(QubitManager):
                 + "cannot be measured."
             )
 
-        if vertex not in self._vertices_with_flow:
-            raise Exception(f"Vertex {vertex} has no flow and cannot be measured.")
+        # if vertex not in self._vertices_with_flow:
+        #     raise Exception(f"Vertex {vertex} has no flow and cannot be measured.")
 
         # Assert that all vertices with order greater than that of the qubit
         # being measured have not yet been measured.
@@ -696,18 +696,20 @@ class GraphCircuit(QubitManager):
         # Check that the vertex has at most one flow vertex
         assert len(list(self.flow_graph.successors(vertex))) <= 1
 
-        vertex_flow = list(self.flow_graph.successors(vertex))[0]
+        if vertex in self._vertices_with_flow:
 
-        # Check that the flow of the vertex being measured has
-        # not been measured.
-        assert not self.vertex_measured[vertex_flow]
+            vertex_flow = list(self.flow_graph.successors(vertex))[0]
 
-        # Add an x correction to the flow of the
-        # measured vertex.
-        self.add_classicalexpbox_bit(
-            self.vertex_reg[vertex][0] ^ self.vertex_reg[vertex_flow][4],
-            [self.vertex_reg[vertex_flow][4]],
-        )
+            # Check that the flow of the vertex being measured has
+            # not been measured.
+            assert not self.vertex_measured[vertex_flow]
+
+            # Add an x correction to the flow of the
+            # measured vertex.
+            self.add_classicalexpbox_bit(
+                self.vertex_reg[vertex][0] ^ self.vertex_reg[vertex_flow][4],
+                [self.vertex_reg[vertex_flow][4]],
+            )
 
     def _add_vertex_check(self, measurement_order: Union[int, None]) -> None:
         """Runs checks that there are enough initialisation

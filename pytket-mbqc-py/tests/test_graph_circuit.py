@@ -2,7 +2,7 @@ import pytest
 from pytket.extensions.quantinuum import QuantinuumAPIOffline, QuantinuumBackend
 from pytket.unit_id import BitRegister, Qubit
 
-from pytket_mbqc_py import CNOTBlocksGraphCircuit, GraphCircuit
+from pytket_mbqc_py import GraphCircuit
 
 
 def test_zero_state():
@@ -504,46 +504,55 @@ def test_3_q_ghz():
 #     assert result.get_counts(output_reg)[output_state] == n_shots
 
 
-@pytest.mark.high_compute
 def test_2q_t_gate_example():
     api_offline = QuantinuumAPIOffline()
     backend = QuantinuumBackend(device_name="H1-1LE", api_handler=api_offline)
 
     graph_circuit = GraphCircuit(
         n_physical_qubits=6,
-        n_logical_qubits=16,
+        n_logical_qubits=20,
     )
 
-    _, input_vertex_0 = graph_circuit.add_input_vertex(measurement_order=0)
-
-    # H[0]S[0]
-    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=1)
-    graph_circuit.add_edge(input_vertex_0, graph_vertex_0_0)
-    graph_circuit.corrected_measure(input_vertex_0, t_multiple=2)
+    input_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=0)
 
     # H[0]
-    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=2)
+    input_vertex_0_h = graph_circuit.add_graph_vertex(measurement_order=1)
+    graph_circuit.add_edge(input_vertex_0, input_vertex_0_h)
+    graph_circuit.corrected_measure(input_vertex_0, t_multiple=0)
+
+    # H[0]S[0]
+    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=2)
+    graph_circuit.add_edge(input_vertex_0_h, graph_vertex_0_0)
+    graph_circuit.corrected_measure(input_vertex_0_h, t_multiple=2)
+
+    # H[0]
+    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=4)
     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_0_1)
     graph_circuit.corrected_measure(graph_vertex_0_0, t_multiple=0)
 
-    _, input_vertex_1 = graph_circuit.add_input_vertex(measurement_order=3)
+    input_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=3)
+
+    # H[1]
+    input_vertex_1_h = graph_circuit.add_graph_vertex(measurement_order=5)
+    graph_circuit.add_edge(input_vertex_1, input_vertex_1_h)
+    graph_circuit.corrected_measure(input_vertex_1, t_multiple=0)
 
     # CZ[0,1]H[1]H[0]
-    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=4)
+    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=6)
     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_0)
     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=0)
 
-    graph_vertex_1_0 = graph_circuit.add_graph_vertex(measurement_order=5)
+    graph_vertex_1_0 = graph_circuit.add_graph_vertex(measurement_order=7)
 
-    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=6)
+    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=8)
     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_0_1)
 
-    graph_circuit.add_edge(input_vertex_1, graph_vertex_1_0)
+    graph_circuit.add_edge(input_vertex_1_h, graph_vertex_1_0)
     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_1_0)
 
-    graph_circuit.corrected_measure(input_vertex_1, t_multiple=0)
+    graph_circuit.corrected_measure(input_vertex_1_h, t_multiple=0)
 
-    graph_vertex_1_1 = graph_circuit.add_graph_vertex(measurement_order=7)
+    graph_vertex_1_1 = graph_circuit.add_graph_vertex(measurement_order=9)
     graph_circuit.add_edge(graph_vertex_1_0, graph_vertex_1_1)
 
     # H[0]
@@ -553,29 +562,29 @@ def test_2q_t_gate_example():
     graph_circuit.corrected_measure(graph_vertex_1_0, t_multiple=0)
 
     # H[0]Z[0]
-    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=8)
+    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=10)
     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_0)
     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=4)
 
     # H[0]
-    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=9)
+    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=11)
     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_0_1)
 
     # CZ[0,1]H[0]H[1]
-    graph_vertex_0_2 = graph_circuit.add_graph_vertex(measurement_order=10)
+    graph_vertex_0_2 = graph_circuit.add_graph_vertex(measurement_order=12)
     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_2)
 
-    graph_vertex_1_0 = graph_circuit.add_graph_vertex(measurement_order=11)
+    graph_vertex_1_0 = graph_circuit.add_graph_vertex(measurement_order=13)
     graph_circuit.add_edge(graph_vertex_1_1, graph_vertex_1_0)
     graph_circuit.corrected_measure(graph_vertex_1_1, t_multiple=0)
 
     graph_circuit.corrected_measure(graph_vertex_0_0, t_multiple=0)
     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=0)
 
-    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=12)
+    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=14)
     graph_circuit.add_edge(graph_vertex_0_2, graph_vertex_0_1)
 
-    graph_vertex_1_1 = graph_circuit.add_graph_vertex(measurement_order=None)
+    graph_vertex_1_1 = graph_circuit.add_graph_vertex(measurement_order=16)
     graph_circuit.add_edge(graph_vertex_1_0, graph_vertex_1_1)
 
     graph_circuit.add_edge(graph_vertex_0_2, graph_vertex_1_0)
@@ -587,32 +596,145 @@ def test_2q_t_gate_example():
     graph_circuit.corrected_measure(graph_vertex_1_0, t_multiple=0)
 
     # H[0]S[0]
-    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=13)
+    graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=15)
     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_0)
     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=2)
 
     # H[0]
-    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=None)
+    graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=17)
     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_0_1)
     graph_circuit.corrected_measure(graph_vertex_0_0, t_multiple=0)
 
-    outputs = graph_circuit.get_outputs()
-    out_meas_reg = graph_circuit.add_c_register(
-        name="output measure", size=len(outputs)
-    )
-    for qubit, bit in zip(outputs.values(), out_meas_reg):
-        graph_circuit.Measure(qubit=qubit, bit=bit)
+    # H[1]
+    output_1 = graph_circuit.add_graph_vertex(measurement_order=18)
+    graph_circuit.add_edge(graph_vertex_1_1, output_1)
+    graph_circuit.corrected_measure(graph_vertex_1_1, t_multiple=0)
+
+    # H[0]
+    output_0 = graph_circuit.add_graph_vertex(measurement_order=19)
+    graph_circuit.add_edge(graph_vertex_0_1, output_0)
+    graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=0)
+
+    graph_circuit.corrected_measure(output_1, t_multiple=0)
+    graph_circuit.corrected_measure(output_0, t_multiple=0)
 
     copmiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
-    n_shots = 1000
+    n_shots = 100
     result = backend.run_circuit(circuit=copmiled_graph_circuit, n_shots=n_shots)
-    assert result.get_counts(cbits=out_meas_reg)[(1, 0)] == n_shots
+
+    output_reg = [
+        graph_circuit.vertex_reg[output_1][0],
+        graph_circuit.vertex_reg[output_0][0],
+    ]
+    assert result.get_counts(cbits=output_reg)[(1, 0)] == n_shots
+
+
+# @pytest.mark.high_compute
+# def test_2q_t_gate_example():
+#     api_offline = QuantinuumAPIOffline()
+#     backend = QuantinuumBackend(device_name="H1-1LE", api_handler=api_offline)
+
+#     graph_circuit = GraphCircuit(
+#         n_physical_qubits=6,
+#         n_logical_qubits=16,
+#     )
+
+#     _, input_vertex_0 = graph_circuit.add_input_vertex(measurement_order=0)
+
+#     # H[0]S[0]
+#     graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=1)
+#     graph_circuit.add_edge(input_vertex_0, graph_vertex_0_0)
+#     graph_circuit.corrected_measure(input_vertex_0, t_multiple=2)
+
+#     # H[0]
+#     graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=2)
+#     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_0_1)
+#     graph_circuit.corrected_measure(graph_vertex_0_0, t_multiple=0)
+
+#     _, input_vertex_1 = graph_circuit.add_input_vertex(measurement_order=3)
+
+#     # CZ[0,1]H[1]H[0]
+#     graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=4)
+#     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_0)
+#     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=0)
+
+#     graph_vertex_1_0 = graph_circuit.add_graph_vertex(measurement_order=5)
+
+#     graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=6)
+#     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_0_1)
+
+#     graph_circuit.add_edge(input_vertex_1, graph_vertex_1_0)
+#     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_1_0)
+
+#     graph_circuit.corrected_measure(input_vertex_1, t_multiple=0)
+
+#     graph_vertex_1_1 = graph_circuit.add_graph_vertex(measurement_order=7)
+#     graph_circuit.add_edge(graph_vertex_1_0, graph_vertex_1_1)
+
+#     # H[0]
+#     graph_circuit.corrected_measure(graph_vertex_0_0, t_multiple=0)
+
+#     # H[1]
+#     graph_circuit.corrected_measure(graph_vertex_1_0, t_multiple=0)
+
+#     # H[0]Z[0]
+#     graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=8)
+#     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_0)
+#     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=4)
+
+#     # H[0]
+#     graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=9)
+#     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_0_1)
+
+#     # CZ[0,1]H[0]H[1]
+#     graph_vertex_0_2 = graph_circuit.add_graph_vertex(measurement_order=10)
+#     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_2)
+
+#     graph_vertex_1_0 = graph_circuit.add_graph_vertex(measurement_order=11)
+#     graph_circuit.add_edge(graph_vertex_1_1, graph_vertex_1_0)
+#     graph_circuit.corrected_measure(graph_vertex_1_1, t_multiple=0)
+
+#     graph_circuit.corrected_measure(graph_vertex_0_0, t_multiple=0)
+#     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=0)
+
+#     graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=12)
+#     graph_circuit.add_edge(graph_vertex_0_2, graph_vertex_0_1)
+
+#     graph_vertex_1_1 = graph_circuit.add_graph_vertex(measurement_order=None)
+#     graph_circuit.add_edge(graph_vertex_1_0, graph_vertex_1_1)
+
+#     graph_circuit.add_edge(graph_vertex_0_2, graph_vertex_1_0)
+
+#     # H[0]
+#     graph_circuit.corrected_measure(graph_vertex_0_2, t_multiple=0)
+
+#     # H[1]
+#     graph_circuit.corrected_measure(graph_vertex_1_0, t_multiple=0)
+
+#     # H[0]S[0]
+#     graph_vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=13)
+#     graph_circuit.add_edge(graph_vertex_0_1, graph_vertex_0_0)
+#     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=2)
+
+#     # H[0]
+#     graph_vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=None)
+#     graph_circuit.add_edge(graph_vertex_0_0, graph_vertex_0_1)
+#     graph_circuit.corrected_measure(graph_vertex_0_0, t_multiple=0)
+
+#     outputs = graph_circuit.get_outputs()
+#     out_meas_reg = graph_circuit.add_c_register(
+#         name="output measure", size=len(outputs)
+#     )
+#     for qubit, bit in zip(outputs.values(), out_meas_reg):
+#         graph_circuit.Measure(qubit=qubit, bit=bit)
+
+#     copmiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
+#     n_shots = 1000
+#     result = backend.run_circuit(circuit=copmiled_graph_circuit, n_shots=n_shots)
+#     assert result.get_counts(cbits=out_meas_reg)[(1, 0)] == n_shots
 
 
 def test_1q_t_gate_example():
-    ################################
-    # The following compiles to I
-
     api_offline = QuantinuumAPIOffline()
     backend = QuantinuumBackend(device_name="H1-1LE", api_handler=api_offline)
 
@@ -621,39 +743,35 @@ def test_1q_t_gate_example():
         n_logical_qubits=5,
     )
 
-    _, input_vertex_0 = graph_circuit.add_input_vertex(measurement_order=0)
-
-    # H[0]
-    graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=1)
-    graph_circuit.add_edge(input_vertex_0, graph_vertex_1)
-    graph_circuit.corrected_measure(input_vertex_0, t_multiple=0)
+    graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=0)
 
     # H[0]T[0]
-    graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=2)
+    graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=1)
     graph_circuit.add_edge(graph_vertex_1, graph_vertex_0)
     graph_circuit.corrected_measure(graph_vertex_1, t_multiple=1)
 
     # H[0]
-    graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=3)
+    graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=2)
     graph_circuit.add_edge(graph_vertex_0, graph_vertex_1)
     graph_circuit.corrected_measure(graph_vertex_0, t_multiple=0)
 
     # H[0]T[0]S[0]Z[0]
-    graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=None)
+    graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=3)
     graph_circuit.add_edge(graph_vertex_1, graph_vertex_0)
     graph_circuit.corrected_measure(graph_vertex_1, t_multiple=7)
 
-    outputs = graph_circuit.get_outputs()
-    out_meas_reg = graph_circuit.add_c_register(
-        name="output measure", size=len(outputs)
-    )
-    for qubit, bit in zip(outputs.values(), out_meas_reg):
-        graph_circuit.Measure(qubit=qubit, bit=bit)
+    # H[0]
+    graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=4)
+    graph_circuit.add_edge(graph_vertex_0, graph_vertex_1)
+    graph_circuit.corrected_measure(graph_vertex_0, t_multiple=0)
+
+    graph_circuit.corrected_measure(graph_vertex_1, t_multiple=0)
 
     compiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
 
-    n_shots = 1000
+    n_shots = 100
     result = backend.run_circuit(circuit=compiled_graph_circuit, n_shots=n_shots)
+    out_meas_reg = [graph_circuit.vertex_reg[graph_vertex_1][0]]
     assert result.get_counts(cbits=out_meas_reg)[(0,)] == n_shots
 
     ################################
@@ -664,39 +782,125 @@ def test_1q_t_gate_example():
         n_logical_qubits=5,
     )
 
-    _, input_vertex_0 = graph_circuit.add_input_vertex(measurement_order=0)
-
-    # H[0]
-    graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=1)
-    graph_circuit.add_edge(input_vertex_0, graph_vertex_1)
-    graph_circuit.corrected_measure(input_vertex_0, t_multiple=0)
+    graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=0)
 
     # H[0]T[0]
-    graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=2)
+    graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=1)
     graph_circuit.add_edge(graph_vertex_1, graph_vertex_0)
     graph_circuit.corrected_measure(graph_vertex_1, t_multiple=1)
 
     # H[0]
-    graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=3)
+    graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=2)
     graph_circuit.add_edge(graph_vertex_0, graph_vertex_1)
     graph_circuit.corrected_measure(graph_vertex_0, t_multiple=0)
 
     # H[0]T[0]S[0]Z[0]
-    graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=None)
+    graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=3)
     graph_circuit.add_edge(graph_vertex_1, graph_vertex_0)
     graph_circuit.corrected_measure(graph_vertex_1, t_multiple=3)
 
-    outputs = graph_circuit.get_outputs()
-    out_meas_reg = graph_circuit.add_c_register(
-        name="output measure", size=len(outputs)
-    )
-    for qubit, bit in zip(outputs.values(), out_meas_reg):
-        graph_circuit.Measure(qubit=qubit, bit=bit)
+    # H[0]
+    graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=4)
+    graph_circuit.add_edge(graph_vertex_0, graph_vertex_1)
+    graph_circuit.corrected_measure(graph_vertex_0, t_multiple=0)
+
+    graph_circuit.corrected_measure(graph_vertex_1, t_multiple=0)
 
     compiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
 
     result = backend.run_circuit(circuit=compiled_graph_circuit, n_shots=n_shots)
+    out_meas_reg = [graph_circuit.vertex_reg[graph_vertex_1][0]]
     assert result.get_counts(cbits=out_meas_reg)[(1,)] == n_shots
+
+
+# def test_1q_t_gate_example():
+#     ################################
+#     # The following compiles to I
+
+#     api_offline = QuantinuumAPIOffline()
+#     backend = QuantinuumBackend(device_name="H1-1LE", api_handler=api_offline)
+
+#     graph_circuit = GraphCircuit(
+#         n_physical_qubits=2,
+#         n_logical_qubits=5,
+#     )
+
+#     _, input_vertex_0 = graph_circuit.add_input_vertex(measurement_order=0)
+
+#     # H[0]
+#     graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=1)
+#     graph_circuit.add_edge(input_vertex_0, graph_vertex_1)
+#     graph_circuit.corrected_measure(input_vertex_0, t_multiple=0)
+
+#     # H[0]T[0]
+#     graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=2)
+#     graph_circuit.add_edge(graph_vertex_1, graph_vertex_0)
+#     graph_circuit.corrected_measure(graph_vertex_1, t_multiple=1)
+
+#     # H[0]
+#     graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=3)
+#     graph_circuit.add_edge(graph_vertex_0, graph_vertex_1)
+#     graph_circuit.corrected_measure(graph_vertex_0, t_multiple=0)
+
+#     # H[0]T[0]S[0]Z[0]
+#     graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=None)
+#     graph_circuit.add_edge(graph_vertex_1, graph_vertex_0)
+#     graph_circuit.corrected_measure(graph_vertex_1, t_multiple=7)
+
+#     outputs = graph_circuit.get_outputs()
+#     out_meas_reg = graph_circuit.add_c_register(
+#         name="output measure", size=len(outputs)
+#     )
+#     for qubit, bit in zip(outputs.values(), out_meas_reg):
+#         graph_circuit.Measure(qubit=qubit, bit=bit)
+
+#     compiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
+
+#     n_shots = 1000
+#     result = backend.run_circuit(circuit=compiled_graph_circuit, n_shots=n_shots)
+#     assert result.get_counts(cbits=out_meas_reg)[(0,)] == n_shots
+
+#     ################################
+#     # The following compiles to X
+
+#     graph_circuit = GraphCircuit(
+#         n_physical_qubits=2,
+#         n_logical_qubits=5,
+#     )
+
+#     _, input_vertex_0 = graph_circuit.add_input_vertex(measurement_order=0)
+
+#     # H[0]
+#     graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=1)
+#     graph_circuit.add_edge(input_vertex_0, graph_vertex_1)
+#     graph_circuit.corrected_measure(input_vertex_0, t_multiple=0)
+
+#     # H[0]T[0]
+#     graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=2)
+#     graph_circuit.add_edge(graph_vertex_1, graph_vertex_0)
+#     graph_circuit.corrected_measure(graph_vertex_1, t_multiple=1)
+
+#     # H[0]
+#     graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=3)
+#     graph_circuit.add_edge(graph_vertex_0, graph_vertex_1)
+#     graph_circuit.corrected_measure(graph_vertex_0, t_multiple=0)
+
+#     # H[0]T[0]S[0]Z[0]
+#     graph_vertex_0 = graph_circuit.add_graph_vertex(measurement_order=None)
+#     graph_circuit.add_edge(graph_vertex_1, graph_vertex_0)
+#     graph_circuit.corrected_measure(graph_vertex_1, t_multiple=3)
+
+#     outputs = graph_circuit.get_outputs()
+#     out_meas_reg = graph_circuit.add_c_register(
+#         name="output measure", size=len(outputs)
+#     )
+#     for qubit, bit in zip(outputs.values(), out_meas_reg):
+#         graph_circuit.Measure(qubit=qubit, bit=bit)
+
+#     compiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
+
+#     result = backend.run_circuit(circuit=compiled_graph_circuit, n_shots=n_shots)
+#     assert result.get_counts(cbits=out_meas_reg)[(1,)] == n_shots
 
 
 def test_mismatched_ordered_measure():

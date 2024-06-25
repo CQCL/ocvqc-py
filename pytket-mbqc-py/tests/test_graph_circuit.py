@@ -6,7 +6,6 @@ from pytket_mbqc_py import CNOTBlocksGraphCircuit, GraphCircuit
 
 
 def test_zero_state():
-
     circuit = GraphCircuit(n_physical_qubits=2, n_logical_qubits=3)
 
     vertex_one = circuit.add_graph_vertex(measurement_order=0)
@@ -63,8 +62,8 @@ def test_zero_state():
 
 #     assert result.get_counts(output_reg)[(0,)] == 100
 
-def test_one_state():
 
+def test_one_state():
     circuit = GraphCircuit(
         n_physical_qubits=2,
         n_logical_qubits=3,
@@ -137,7 +136,6 @@ def test_one_state():
     [((0, 0), (0, 0)), ((0, 1), (0, 1)), ((1, 0), (1, 1)), ((1, 1), (1, 0))],
 )
 def test_cnot(input_state, output_state):
-
     control_value = input_state[0]
     target_value = input_state[1]
 
@@ -171,19 +169,19 @@ def test_cnot(input_state, output_state):
     circuit.corrected_measure(vertex=plus_state, t_multiple=0)
 
     if control_value:
-        measurement_order=3
+        measurement_order = 3
         control_state_h = circuit.add_graph_vertex(measurement_order)
         circuit.add_edge(vertex_one=control_state, vertex_two=control_state_h)
         circuit.corrected_measure(vertex=control_state, t_multiple=0)
 
         if target_value == 0:
-            measurement_order=4
+            measurement_order = 4
         else:
-            measurement_order=6
+            measurement_order = 6
         control_state = circuit.add_graph_vertex(measurement_order)
         circuit.add_edge(vertex_one=control_state_h, vertex_two=control_state)
         circuit.corrected_measure(vertex=control_state_h, t_multiple=4)
-        
+
     if target_value:
         if control_value == 0:
             measurement_order = 3
@@ -192,7 +190,7 @@ def test_cnot(input_state, output_state):
         target_state_h = circuit.add_graph_vertex(measurement_order)
         circuit.add_edge(vertex_one=target_state, vertex_two=target_state_h)
         circuit.corrected_measure(vertex=target_state, t_multiple=0)
-        
+
         if control_value == 0:
             measurement_order = 5
         else:
@@ -200,8 +198,8 @@ def test_cnot(input_state, output_state):
         target_state = circuit.add_graph_vertex(measurement_order)
         circuit.add_edge(vertex_one=target_state_h, vertex_two=target_state)
         circuit.corrected_measure(vertex=target_state_h, t_multiple=4)
-        
-    bump = control_value*2 + target_value*2
+
+    bump = control_value * 2 + target_value * 2
 
     control_state_h = circuit.add_graph_vertex(measurement_order=4 + bump)
     circuit.add_edge(vertex_one=control_state, vertex_two=control_state_h)
@@ -231,20 +229,23 @@ def test_cnot(input_state, output_state):
 
     circuit.corrected_measure(vertex=control_state_h, t_multiple=0)
     circuit.corrected_measure(vertex=target_state_h, t_multiple=0)
-        
+
     backend = QuantinuumBackend(
         device_name="H1-1LE",
         api_handler=QuantinuumAPIOffline(),
     )
 
     compiled_circuit = backend.get_compiled_circuit(circuit)
-    n_shots=100
+    n_shots = 100
     result = backend.run_circuit(
         circuit=compiled_circuit,
         n_shots=n_shots,
     )
 
-    output_reg = [circuit.vertex_reg[control_state_h][0], circuit.vertex_reg[target_state_h][0]]
+    output_reg = [
+        circuit.vertex_reg[control_state_h][0],
+        circuit.vertex_reg[target_state_h][0],
+    ]
     assert result.get_counts(output_reg)[output_state] == n_shots
 
 

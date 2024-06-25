@@ -697,7 +697,6 @@ class GraphCircuit(QubitManager):
         assert len(list(self.flow_graph.successors(vertex))) <= 1
 
         if vertex in self._vertices_with_flow:
-
             vertex_flow = list(self.flow_graph.successors(vertex))[0]
 
             # Check that the flow of the vertex being measured has

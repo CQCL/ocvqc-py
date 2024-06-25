@@ -385,19 +385,6 @@ class GraphCircuit(QubitManager):
 
         return reduce(lambda a, b: a ^ b, neighbour_reg_list)
 
-    # def _apply_z_correction(self, vertex: int) -> None:
-    #     """Apply Z correction on qubit. This correction is calculated
-    #     using the X corrections that have to be applied to the neighbouring
-    #     qubits.
-
-    #     :param vertex: Vertex to be corrected.
-    #     """
-    #     condition = self._get_z_correction_expression(vertex=vertex)
-    #     self.Z(
-    #         self.vertex_qubit[vertex],
-    #         condition=condition,
-    #     )
-
     def _apply_classical_z_correction(self, vertex: int) -> None:
         """Apply Z correction on measurement result. This correction is calculated
         using the X corrections that have to be applied to the neighbouring

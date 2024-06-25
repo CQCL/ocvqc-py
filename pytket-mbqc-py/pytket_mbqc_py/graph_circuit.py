@@ -268,16 +268,16 @@ class GraphCircuit(QubitManager):
             vertex_two in self.flow_graph.nodes
         ), f"Vertex {vertex_two} missing from flow graph"
 
-        # Check that edges only point towards unmeasured vertices.
-        # This ensures that unmeasured vertices do not have flow.
-        # if (self.measurement_order_list[vertex_one] is None) and (
-        #     self.measurement_order_list[vertex_two] is not None
-        # ):
-        #     raise Exception(
-        #         "Please ensure that edges point towards unmeasured qubits. "
-        #         + f"In this case {vertex_one} is an output but {vertex_two} "
-        #         + "is not."
-        #     )
+        # Check that edges only point towards output vertices.
+        # This ensures that output vertices do not have flow.
+        if (self.measurement_order_list[vertex_one] is None) and (
+            self.measurement_order_list[vertex_two] is not None
+        ):
+            raise Exception(
+                "Please ensure that edges point towards output qubits. "
+                + f"In this case {vertex_one} is an output but {vertex_two} "
+                + "is not."
+            )
 
         if (
             (self.measurement_order_list[vertex_one] is not None)
@@ -420,15 +420,6 @@ class GraphCircuit(QubitManager):
             raise Exception(
                 f"Vertex {vertex} has already been measured and cannot be measured again."
             )
-
-        # if self.measurement_order_list[vertex] is None:
-        #     raise Exception(
-        #         f"Vertex {vertex} does not have a measurement order and "
-        #         + "cannot be measured."
-        #     )
-
-        # if vertex not in self._vertices_with_flow:
-        #     raise Exception(f"Vertex {vertex} has no flow and cannot be measured.")
 
         # Assert that all vertices with order greater than that of the qubit
         # being measured have not yet been measured.

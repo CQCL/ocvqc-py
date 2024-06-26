@@ -5,7 +5,7 @@ and automatically adding measurement corrections.
 """
 
 from functools import reduce
-from typing import Dict, List, Tuple, Union, cast
+from typing import List, Union, cast
 
 import networkx as nx  # type:ignore
 from pytket import Qubit
@@ -161,98 +161,6 @@ class GraphCircuit(QubitManager):
         list_chunk = bit_list[(chunk + 1) * n_randomness_qubits :]
         generate_randomness(list_chunk=list_chunk)
 
-    def get_outputs(self) -> Dict[int, Qubit]:
-        """Return the output qubits. Output qubits are those that
-        are unmeasured, and which do not have a flow. This should
-        be treated as the final step in an MBQC computation. Indeed
-        checks are made that the state has been appropriately
-        measured. This will also apply the appropriate corrections to
-        the output qubits.
-
-        :raises Exception: Raised if there are vertices
-            with a measurement order which have not been measured.
-        :raises Exception: Raised if too many logical qubits
-            were requested upon initialisation.
-
-        :return: Dictionary mapping output vertices to physical
-            qubits. These qubits can now be treated as normal circuit
-            qubits.
-        """
-
-        # Checks if too many registers were created. This would not necessarily
-        # be a problem, but it does save on registers, and reduces the
-        # resources allocated to randomness generation.
-        if len(self.vertex_reg) > len(self.vertex_qubit):
-            raise Exception(
-                f"Too many vertex registers, {len(self.vertex_reg)}, were created. "
-                + f"Consider setting n_logical_qubits={len(self.vertex_qubit)} "
-                + "upon initialising this class."
-            )
-
-        # Outputs should be all of the qubits which have not been measured.
-        output_qubits = {
-            vertex: qubit
-            for vertex, qubit in enumerate(self.vertex_qubit)
-            if not self.vertex_measured[vertex]
-        }
-
-        # Unmeasured vertices should not have an order.
-        # If they do they need to be measured.
-        ordered_unmeasured_qubits = [
-            vertex
-            for vertex in output_qubits.keys()
-            if self.measurement_order_list[vertex] is not None
-        ]
-        if len(ordered_unmeasured_qubits) > 0:
-            raise Exception(
-                f"Vertices {ordered_unmeasured_qubits} have a measurement order "
-                + "but have not been measured. "
-                + "Please measure them, or set their order to None."
-            )
-
-        # All qubits with flow must be measured. This is to
-        # ensure that all corrections have been made.
-        # It would be a bug if this is not the case as all vertices with
-        # flow should have an order, and all vertices with an order
-        # should have been measured.
-        unmeasured_flow_vertices = [
-            vertex
-            for vertex in self._vertices_with_flow
-            if not self.vertex_measured[vertex]
-        ]
-        assert unmeasured_flow_vertices == [], "A vertex with flow is unmeasured."
-
-        # We need to correct all unmeasured qubits.
-        for vertex in output_qubits.keys():
-            # Corrections are first applied to invert the initialisation
-            self.T(self.vertex_qubit[vertex], condition=self.vertex_reg[vertex][1])
-            self.S(self.vertex_qubit[vertex], condition=self.vertex_reg[vertex][1])
-
-            self.S(self.vertex_qubit[vertex], condition=self.vertex_reg[vertex][2])
-
-            self.Z(
-                self.vertex_qubit[vertex],
-                condition=(
-                    self.vertex_reg[vertex][3]
-                    ^ self.vertex_reg[vertex][2]
-                    ^ self.vertex_reg[vertex][1]
-                ),
-            )
-
-            # Apply X correction according to correction register.
-            # These are corrections resulting from the measurements
-            self.X(
-                self.vertex_qubit[vertex],
-                condition=self.vertex_reg[vertex][4],
-            )
-
-            # Apply Z corrections resulting from measurements.
-            # This cannot be done classically as the vertex itself has not
-            # been measured.
-            self._apply_z_correction(vertex=vertex)
-
-        return output_qubits
-
     def _add_vertex(self, qubit: Qubit, measurement_order: Union[int, None]) -> None:
         """Add a new vertex to the graph.
         This requires that the vertex is added to the
@@ -272,34 +180,6 @@ class GraphCircuit(QubitManager):
         self.vertex_qubit.append(qubit)
         self.vertex_measured.append(False)
         self.measurement_order_list.append(measurement_order)
-
-    def add_input_vertex(
-        self, measurement_order: Union[int, None]
-    ) -> Tuple[Qubit, int]:
-        """Add a new input vertex to the graph.
-        This returns the input qubit created.
-        You may perform transformations on this input qubit
-        but all transformations must be completed before
-        any edges are added to this vertex.
-
-        :param measurement_order: The order at which this vertex will
-            be measured.
-
-        :return: The qubit added, and the corresponding index in the graph.
-        """
-
-        self._add_vertex_check(measurement_order)
-
-        index = len(self.vertex_qubit)
-
-        qubit = self.get_qubit(measure_bit=self.vertex_reg[index][0])
-        self._add_vertex(qubit=qubit, measurement_order=measurement_order)
-
-        # In the case of input qubits, the initialisation is not random.
-        # As such the initialisation register should be set to 0.
-        self.add_c_setbits([False] * 3, self.vertex_reg[index].to_list()[1:4])
-
-        return (qubit, index)
 
     def add_graph_vertex(self, measurement_order: Union[int, None]) -> int:
         """Add a new graph vertex.
@@ -388,13 +268,13 @@ class GraphCircuit(QubitManager):
             vertex_two in self.flow_graph.nodes
         ), f"Vertex {vertex_two} missing from flow graph"
 
-        # Check that edges only point towards unmeasured vertices.
-        # This ensures that unmeasured vertices do not have flow.
+        # Check that edges only point towards output vertices.
+        # This ensures that output vertices do not have flow.
         if (self.measurement_order_list[vertex_one] is None) and (
             self.measurement_order_list[vertex_two] is not None
         ):
             raise Exception(
-                "Please ensure that edges point towards unmeasured qubits. "
+                "Edges must point towards output qubits. "
                 + f"In this case {vertex_one} is an output but {vertex_two} "
                 + "is not."
             )
@@ -505,19 +385,6 @@ class GraphCircuit(QubitManager):
 
         return reduce(lambda a, b: a ^ b, neighbour_reg_list)
 
-    def _apply_z_correction(self, vertex: int) -> None:
-        """Apply Z correction on qubit. This correction is calculated
-        using the X corrections that have to be applied to the neighbouring
-        qubits.
-
-        :param vertex: Vertex to be corrected.
-        """
-        condition = self._get_z_correction_expression(vertex=vertex)
-        self.Z(
-            self.vertex_qubit[vertex],
-            condition=condition,
-        )
-
     def _apply_classical_z_correction(self, vertex: int) -> None:
         """Apply Z correction on measurement result. This correction is calculated
         using the X corrections that have to be applied to the neighbouring
@@ -554,44 +421,19 @@ class GraphCircuit(QubitManager):
                 f"Vertex {vertex} has already been measured and cannot be measured again."
             )
 
-        if self.measurement_order_list[vertex] is None:
-            raise Exception(
-                f"Vertex {vertex} does not have a measurement order and "
-                + "cannot be measured."
-            )
+        vertex_measure_order = self.measurement_order_list[vertex]
 
-        if vertex not in self._vertices_with_flow:
-            raise Exception(f"Vertex {vertex} has no flow and cannot be measured.")
+        if vertex_measure_order is None:
+            assert (
+                vertex not in self._vertices_with_flow
+            ), "Output vertices should not have flow."
 
-        # Assert that all vertices with order greater than that of the qubit
-        # being measured have not yet been measured.
-        assert all(
-            not later_vertex_measured
-            for later_vertex_measured, later_vertex_order in zip(
-                self.measurement_order_list, self.vertex_measured
-            )
-            if (
-                (later_vertex_order is not None)
-                # This cast is safe as we have established above that the
-                # vertex has a measurement order.
-                and (
-                    later_vertex_order > cast(int, self.measurement_order_list[vertex])
-                )
-            )
-        ), "There are vertices with higher order which have already been measured"
-
-        if (
-            # safe to cast as we have check that the order is not None.
-            (cast(int, self.measurement_order_list[vertex]) > 0)
-            and (
-                (cast(int, self.measurement_order_list[vertex]) - 1)
-                not in self.measurement_order_list
-            )
+        if (vertex not in self._vertices_with_flow) and (
+            vertex_measure_order is not None
         ):
             raise Exception(
-                f"Vertex {vertex} has order "
-                + f"{self.measurement_order_list[vertex]} "
-                + f"but there is no vertex with order {cast(int, self.measurement_order_list[vertex]) - 1}."
+                f"Vertex {vertex} is not an output and has no flow. "
+                "As such it cannot be measured. "
             )
 
         # List the vertices which have order less than the vertex considered,
@@ -601,21 +443,53 @@ class GraphCircuit(QubitManager):
             for earlier_vertex, earlier_vertex_order in enumerate(
                 self.measurement_order_list
             )
-            if (
-                (earlier_vertex_order is not None)
-                and (
-                    earlier_vertex_order
-                    < cast(int, self.measurement_order_list[vertex])
-                )
-                and (not self.vertex_measured[earlier_vertex])
-            )
+            if (earlier_vertex_order is not None)
+            and (not self.vertex_measured[earlier_vertex])
         ]
+
+        if vertex_measure_order is not None:
+            unmeasured_earlier_vertex_list = [
+                earlier_vertex
+                for earlier_vertex in unmeasured_earlier_vertex_list
+                if cast(int, self.measurement_order_list[earlier_vertex])
+                < vertex_measure_order
+            ]
+
         if len(unmeasured_earlier_vertex_list) > 0:
             raise Exception(
                 f"The vertices {unmeasured_earlier_vertex_list} are ordered "
                 + f"to be measured before vertex {vertex}, "
                 + "but are unmeasured."
             )
+
+        if vertex_measure_order is not None:
+            measured_later_vertex_list = [
+                later_vertex
+                for later_vertex, later_vertex_order in enumerate(
+                    self.measurement_order_list
+                )
+                if self.vertex_measured[later_vertex]
+                and (
+                    later_vertex_order is None
+                    or later_vertex_order > vertex_measure_order
+                )
+            ]
+
+            assert len(measured_later_vertex_list) == 0, (
+                f"The vertices {measured_later_vertex_list} are ordered "
+                f"to be measured after vertex {vertex}, "
+                "but are measured."
+            )
+
+        if vertex_measure_order is not None:
+            if (vertex_measure_order > 0) and (
+                (vertex_measure_order - 1) not in self.measurement_order_list
+            ):
+                raise Exception(
+                    f"Vertex {vertex} has order "
+                    + f"{vertex_measure_order} "
+                    + f"but there is no vertex with order {vertex_measure_order - 1}."
+                )
 
         # Apply X correction according to correction register.
         # This is to correct for measurement outcomes.
@@ -696,18 +570,23 @@ class GraphCircuit(QubitManager):
         # Check that the vertex has at most one flow vertex
         assert len(list(self.flow_graph.successors(vertex))) <= 1
 
-        vertex_flow = list(self.flow_graph.successors(vertex))[0]
+        if vertex in self._vertices_with_flow:
+            assert (
+                vertex_measure_order is not None
+            ), f"Vertex {vertex} has flow but is an output. "
 
-        # Check that the flow of the vertex being measured has
-        # not been measured.
-        assert not self.vertex_measured[vertex_flow]
+            vertex_flow = list(self.flow_graph.successors(vertex))[0]
 
-        # Add an x correction to the flow of the
-        # measured vertex.
-        self.add_classicalexpbox_bit(
-            self.vertex_reg[vertex][0] ^ self.vertex_reg[vertex_flow][4],
-            [self.vertex_reg[vertex_flow][4]],
-        )
+            # Check that the flow of the vertex being measured has
+            # not been measured.
+            assert not self.vertex_measured[vertex_flow]
+
+            # Add an x correction to the flow of the
+            # measured vertex.
+            self.add_classicalexpbox_bit(
+                self.vertex_reg[vertex][0] ^ self.vertex_reg[vertex_flow][4],
+                [self.vertex_reg[vertex_flow][4]],
+            )
 
     def _add_vertex_check(self, measurement_order: Union[int, None]) -> None:
         """Runs checks that there are enough initialisation

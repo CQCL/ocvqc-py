@@ -14,7 +14,7 @@ def test_zero_state():
     circuit.add_edge(vertex_one=vertex_one, vertex_two=vertex_two)
     circuit.corrected_measure(vertex=vertex_one)
 
-    vertex_three = circuit.add_graph_vertex(measurement_order=2)
+    vertex_three = circuit.add_graph_vertex(measurement_order=None)
     circuit.add_edge(vertex_one=vertex_two, vertex_two=vertex_three)
     circuit.corrected_measure(vertex=vertex_two)
     circuit.corrected_measure(vertex=vertex_three)
@@ -44,7 +44,7 @@ def test_one_state():
     circuit.add_edge(vertex_one=vertex_one, vertex_two=vertex_two)
     circuit.corrected_measure(vertex=vertex_one, t_multiple=4)
 
-    vertex_three = circuit.add_graph_vertex(measurement_order=2)
+    vertex_three = circuit.add_graph_vertex(measurement_order=None)
     circuit.add_edge(vertex_one=vertex_two, vertex_two=vertex_three)
     circuit.corrected_measure(vertex=vertex_two, t_multiple=0)
     circuit.corrected_measure(vertex=vertex_three, t_multiple=0)
@@ -149,14 +149,14 @@ def test_cnot(input_state, output_state):
     target_state = circuit.add_graph_vertex(measurement_order=7 + bump)
     circuit.add_edge(vertex_one=target_state_h, vertex_two=target_state)
 
-    control_state_h = circuit.add_graph_vertex(measurement_order=8 + bump)
+    control_state_h = circuit.add_graph_vertex(measurement_order=None)
     circuit.add_edge(vertex_one=control_state, vertex_two=control_state_h)
 
     circuit.add_edge(vertex_one=target_state_h, vertex_two=control_state)
     circuit.corrected_measure(vertex=target_state_h, t_multiple=0)
     circuit.corrected_measure(vertex=control_state, t_multiple=0)
 
-    target_state_h = circuit.add_graph_vertex(measurement_order=9 + bump)
+    target_state_h = circuit.add_graph_vertex(measurement_order=None)
     circuit.add_edge(vertex_one=target_state, vertex_two=target_state_h)
     circuit.corrected_measure(vertex=target_state, t_multiple=0)
 
@@ -195,15 +195,15 @@ def test_3_q_ghz():
 
     graph_circuit.corrected_measure(vertex=input_vertex)
 
-    vertex_layer_2_1 = graph_circuit.add_graph_vertex(measurement_order=3)
-    vertex_layer_2_2 = graph_circuit.add_graph_vertex(measurement_order=4)
+    vertex_layer_2_1 = graph_circuit.add_graph_vertex(measurement_order=None)
+    vertex_layer_2_2 = graph_circuit.add_graph_vertex(measurement_order=None)
 
     graph_circuit.add_edge(vertex_layer_1_1, vertex_layer_2_1)
     graph_circuit.add_edge(vertex_layer_1_1, vertex_layer_2_2)
 
     graph_circuit.corrected_measure(vertex=vertex_layer_1_1)
 
-    vertex_layer_1_2_h = graph_circuit.add_graph_vertex(measurement_order=5)
+    vertex_layer_1_2_h = graph_circuit.add_graph_vertex(measurement_order=None)
     graph_circuit.add_edge(vertex_layer_1_2, vertex_layer_1_2_h)
     graph_circuit.corrected_measure(vertex=vertex_layer_1_2)
 
@@ -335,12 +335,12 @@ def test_2q_t_gate_example():
     graph_circuit.corrected_measure(graph_vertex_0_0, t_multiple=0)
 
     # H[1]
-    output_1 = graph_circuit.add_graph_vertex(measurement_order=18)
+    output_1 = graph_circuit.add_graph_vertex(measurement_order=None)
     graph_circuit.add_edge(graph_vertex_1_1, output_1)
     graph_circuit.corrected_measure(graph_vertex_1_1, t_multiple=0)
 
     # H[0]
-    output_0 = graph_circuit.add_graph_vertex(measurement_order=19)
+    output_0 = graph_circuit.add_graph_vertex(measurement_order=None)
     graph_circuit.add_edge(graph_vertex_0_1, output_0)
     graph_circuit.corrected_measure(graph_vertex_0_1, t_multiple=0)
 
@@ -415,7 +415,20 @@ def test_1q_t_gate_example():
         graph_circuit.add_graph_vertex(measurement_order=3)
 
     # H[0]
-    graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=4)
+    graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=None)
+
+    with pytest.raises(
+        Exception,
+        match="Edges must point towards output qubits.",
+    ):
+        graph_circuit.add_edge(graph_vertex_1, graph_vertex_0)
+
+    with pytest.raises(
+        Exception,
+        match="Vertex 3 is not an output and has no flow.",
+    ):
+        graph_circuit.corrected_measure(graph_vertex_0, t_multiple=0)
+    
     graph_circuit.add_edge(graph_vertex_0, graph_vertex_1)
     graph_circuit.corrected_measure(graph_vertex_0, t_multiple=0)
 
@@ -460,7 +473,7 @@ def test_1q_t_gate_example():
     graph_circuit.corrected_measure(graph_vertex_1, t_multiple=3)
 
     # H[0]
-    graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=4)
+    graph_vertex_1 = graph_circuit.add_graph_vertex(measurement_order=None)
     graph_circuit.add_edge(graph_vertex_0, graph_vertex_1)
     graph_circuit.corrected_measure(graph_vertex_0, t_multiple=0)
 
@@ -770,7 +783,7 @@ def test_single_unmeasured_vertex():
 
     graph_circuit = GraphCircuit(n_physical_qubits=6, n_logical_qubits=1)
 
-    vertex = graph_circuit.add_graph_vertex(measurement_order=0)
+    vertex = graph_circuit.add_graph_vertex(measurement_order=None)
     graph_circuit.corrected_measure(vertex=vertex)
 
     output_reg = [graph_circuit.vertex_reg[vertex][0]]

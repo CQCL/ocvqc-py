@@ -274,7 +274,7 @@ class GraphCircuit(QubitManager):
             self.measurement_order_list[vertex_two] is not None
         ):
             raise Exception(
-                "Please ensure that edges point towards output qubits. "
+                "Edges must point towards output qubits. "
                 + f"In this case {vertex_one} is an output but {vertex_two} "
                 + "is not."
             )
@@ -420,38 +420,12 @@ class GraphCircuit(QubitManager):
             raise Exception(
                 f"Vertex {vertex} has already been measured and cannot be measured again."
             )
-
-        # Assert that all vertices with order greater than that of the qubit
-        # being measured have not yet been measured.
-        assert all(
-            not later_vertex_measured
-            for later_vertex_measured, later_vertex_order in zip(
-                self.measurement_order_list, self.vertex_measured
-            )
-            if (
-                (later_vertex_order is not None)
-                # This cast is safe as we have established above that the
-                # vertex has a measurement order.
-                and (
-                    later_vertex_order > cast(int, self.measurement_order_list[vertex])
-                )
-            )
-        ), "There are vertices with higher order which have already been measured"
-
-        if (
-            # safe to cast as we have check that the order is not None.
-            (cast(int, self.measurement_order_list[vertex]) > 0)
-            and (
-                (cast(int, self.measurement_order_list[vertex]) - 1)
-                not in self.measurement_order_list
-            )
-        ):
+        
+        if (vertex not in self._vertices_with_flow) and (self.measurement_order_list[vertex] is not None):
             raise Exception(
-                f"Vertex {vertex} has order "
-                + f"{self.measurement_order_list[vertex]} "
-                + f"but there is no vertex with order {cast(int, self.measurement_order_list[vertex]) - 1}."
-            )
-
+                f"Vertex {vertex} is not an output and has no flow. "
+                "As such it cannot be measured.")
+        
         # List the vertices which have order less than the vertex considered,
         # but which have not yet been measured.
         unmeasured_earlier_vertex_list = [
@@ -459,21 +433,55 @@ class GraphCircuit(QubitManager):
             for earlier_vertex, earlier_vertex_order in enumerate(
                 self.measurement_order_list
             )
-            if (
-                (earlier_vertex_order is not None)
-                and (
-                    earlier_vertex_order
-                    < cast(int, self.measurement_order_list[vertex])
-                )
-                and (not self.vertex_measured[earlier_vertex])
-            )
+            if (earlier_vertex_order is not None) and (not self.vertex_measured[earlier_vertex])
         ]
+
+        if self.measurement_order_list[vertex] is not None:
+
+            unmeasured_earlier_vertex_list = [
+                earlier_vertex
+                for earlier_vertex in unmeasured_earlier_vertex_list
+                if self.measurement_order_list[earlier_vertex] < self.measurement_order_list[vertex]
+            ]
+
         if len(unmeasured_earlier_vertex_list) > 0:
             raise Exception(
                 f"The vertices {unmeasured_earlier_vertex_list} are ordered "
                 + f"to be measured before vertex {vertex}, "
                 + "but are unmeasured."
             )
+        
+        if self.measurement_order_list[vertex] is not None:
+        
+            measured_later_vertex_list = [
+                later_vertex
+                for later_vertex, later_vertex_order in enumerate(
+                    self.measurement_order_list
+                )
+                if self.vertex_measured[later_vertex] and later_vertex_order > self.measurement_order_list[vertex]
+            ]
+
+            assert len(measured_later_vertex_list) == 0, (
+                f"The vertices {measured_later_vertex_list} are ordered "
+                f"to be measured after vertex {vertex}, "
+                "but are measured."
+            )
+
+        if self.measurement_order_list[vertex] is not None:
+
+            if (
+                # safe to cast as we have check that the order is not None.
+                (cast(int, self.measurement_order_list[vertex]) > 0)
+                and (
+                    (cast(int, self.measurement_order_list[vertex]) - 1)
+                    not in self.measurement_order_list
+                )
+            ):
+                raise Exception(
+                    f"Vertex {vertex} has order "
+                    + f"{self.measurement_order_list[vertex]} "
+                    + f"but there is no vertex with order {cast(int, self.measurement_order_list[vertex]) - 1}."
+                )
 
         # Apply X correction according to correction register.
         # This is to correct for measurement outcomes.

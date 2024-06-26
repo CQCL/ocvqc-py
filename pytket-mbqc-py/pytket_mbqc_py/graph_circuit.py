@@ -5,7 +5,7 @@ and automatically adding measurement corrections.
 """
 
 from functools import reduce
-from typing import Dict, List, Tuple, Union, cast
+from typing import List, Union, cast
 
 import networkx as nx  # type:ignore
 from pytket import Qubit
@@ -423,12 +423,17 @@ class GraphCircuit(QubitManager):
 
         vertex_measure_order = self.measurement_order_list[vertex]
 
+        if vertex_measure_order is None:
+            assert (
+                vertex not in self._vertices_with_flow
+            ), "Output vertices should not have flow."
+
         if (vertex not in self._vertices_with_flow) and (
             vertex_measure_order is not None
         ):
             raise Exception(
                 f"Vertex {vertex} is not an output and has no flow. "
-                "As such it cannot be measured."
+                "As such it cannot be measured. "
             )
 
         # List the vertices which have order less than the vertex considered,
@@ -464,8 +469,10 @@ class GraphCircuit(QubitManager):
                     self.measurement_order_list
                 )
                 if self.vertex_measured[later_vertex]
-                and later_vertex_order is not None
-                and later_vertex_order > vertex_measure_order
+                and (
+                    later_vertex_order is None
+                    or later_vertex_order > vertex_measure_order
+                )
             ]
 
             assert len(measured_later_vertex_list) == 0, (
@@ -475,10 +482,8 @@ class GraphCircuit(QubitManager):
             )
 
         if vertex_measure_order is not None:
-            if (
-                # safe to cast as we have check that the order is not None.
-                (vertex_measure_order > 0)
-                and ((vertex_measure_order - 1) not in self.measurement_order_list)
+            if (vertex_measure_order > 0) and (
+                (vertex_measure_order - 1) not in self.measurement_order_list
             ):
                 raise Exception(
                     f"Vertex {vertex} has order "
@@ -566,6 +571,10 @@ class GraphCircuit(QubitManager):
         assert len(list(self.flow_graph.successors(vertex))) <= 1
 
         if vertex in self._vertices_with_flow:
+            assert (
+                vertex_measure_order is not None
+            ), f"Vertex {vertex} has flow but is an output. "
+
             vertex_flow = list(self.flow_graph.successors(vertex))[0]
 
             # Check that the flow of the vertex being measured has

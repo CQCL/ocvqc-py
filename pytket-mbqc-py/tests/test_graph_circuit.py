@@ -1,6 +1,5 @@
 import pytest
 from pytket.extensions.quantinuum import QuantinuumAPIOffline, QuantinuumBackend
-from pytket.unit_id import BitRegister, Qubit
 
 from pytket_mbqc_py import GraphCircuit
 
@@ -688,12 +687,6 @@ def test_error_messages():
             vertex_one=vertex_zero,
             vertex_two=vertex_four,
         )
-
-    # with pytest.raises(
-    #     Exception,
-    #     match="Vertex 4 has no flow and cannot be measured.",
-    # ):
-    #     graph_circuit.corrected_measure(vertex=vertex_four)
 
     graph_circuit.add_edge(
         vertex_one=vertex_four,

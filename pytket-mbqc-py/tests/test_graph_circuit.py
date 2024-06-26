@@ -428,7 +428,7 @@ def test_1q_t_gate_example():
         match="Vertex 3 is not an output and has no flow.",
     ):
         graph_circuit.corrected_measure(graph_vertex_0, t_multiple=0)
-    
+
     graph_circuit.add_edge(graph_vertex_0, graph_vertex_1)
     graph_circuit.corrected_measure(graph_vertex_0, t_multiple=0)
 
@@ -567,137 +567,75 @@ def test_mismatched_ordered_measure():
     assert result.get_counts(cbits=output_reg)[(0, 0)] == n_shots
 
 
-@pytest.mark.skip()
 @pytest.mark.parametrize(
     "input_state, output_state",
     [((0, 0), (0, 0)), ((0, 1), (0, 1)), ((1, 0), (1, 1)), ((1, 1), (1, 0))],
 )
 def test_cnot_entangled_output(input_state, output_state):
-    graph_circuit = GraphCircuit(n_physical_qubits=4, n_logical_qubits=4)
-
-    qubit_zero, vertex_zero = graph_circuit.add_input_vertex(measurement_order=0)
-
-    if input_state[0]:
-        graph_circuit.X(qubit_zero)
-
-    graph_circuit.H(qubit_zero)
-
-    vertex_one = graph_circuit.add_graph_vertex(measurement_order=None)
-
-    with pytest.raises(
-        Exception,
-        match="Vertex 1 does not have a measurement order and cannot be measured.",
-    ):
-        graph_circuit.corrected_measure(vertex_one)
-
-    graph_circuit.add_edge(
-        vertex_one=vertex_zero,
-        vertex_two=vertex_one,
+    graph_circuit = GraphCircuit(
+        n_physical_qubits=3,
+        n_logical_qubits=10,
     )
 
-    graph_circuit.corrected_measure(vertex_zero)
+    # Rotation followed by H on control to create input
+    vertex_0_0 = graph_circuit.add_graph_vertex(measurement_order=0)
+    vertex_0_1 = graph_circuit.add_graph_vertex(measurement_order=1)
+    graph_circuit.add_edge(vertex_0_0, vertex_0_1)
+    graph_circuit.corrected_measure(vertex_0_0, t_multiple=4 * input_state[0])
 
-    with pytest.raises(
-        Exception,
-        match="Vertex 0 has already been measured and cannot be measured again.",
-    ):
-        graph_circuit.corrected_measure(vertex_zero)
+    # H on control
+    vertex_0_2 = graph_circuit.add_graph_vertex(measurement_order=5)
+    graph_circuit.add_edge(vertex_0_1, vertex_0_2)
+    graph_circuit.corrected_measure(vertex_0_1, t_multiple=0)
 
-    with pytest.raises(
-        Exception,
-        match="Cannot add edge after measure. In particular \[0\] have been measured.",
-    ):
-        graph_circuit.add_edge(
-            vertex_one=vertex_zero,
-            vertex_two=vertex_one,
-        )
+    # Rotation followed by H on target to create input
+    vertex_1_0 = graph_circuit.add_graph_vertex(measurement_order=2)
+    vertex_1_1 = graph_circuit.add_graph_vertex(measurement_order=3)
+    graph_circuit.add_edge(vertex_1_0, vertex_1_1)
+    graph_circuit.corrected_measure(vertex_1_0, t_multiple=4 * input_state[1])
 
-    with pytest.raises(
-        Exception,
-        match="Measurement order must be unique. A vertex is already measured at order 0.",
-    ):
-        graph_circuit.add_input_vertex(measurement_order=0)
+    # H on target
+    vertex_1_2 = graph_circuit.add_graph_vertex(measurement_order=4)
+    graph_circuit.add_edge(vertex_1_1, vertex_1_2)
+    graph_circuit.corrected_measure(vertex_1_1, t_multiple=0)
 
-    qubit_two, vertex_two = graph_circuit.add_input_vertex(measurement_order=1)
+    # H on target
+    vertex_1_3 = graph_circuit.add_graph_vertex(measurement_order=6)
+    graph_circuit.add_edge(vertex_1_2, vertex_1_3)
+    graph_circuit.corrected_measure(vertex_1_2, t_multiple=0)
 
-    if input_state[1]:
-        graph_circuit.X(qubit_two)
+    # HHCX
+    vertex_0_3 = graph_circuit.add_graph_vertex(measurement_order=7)
+    graph_circuit.add_edge(vertex_0_2, vertex_0_3)
+    graph_circuit.corrected_measure(vertex_0_2, t_multiple=0)
 
-    with pytest.raises(
-        Exception,
-        match="Too many vertex registers, 4, were created. Consider setting n_logical_qubits=3 upon initialising this class.",
-    ):
-        graph_circuit.get_outputs()
+    vertex_1_4 = graph_circuit.add_graph_vertex(measurement_order=None)
+    graph_circuit.add_edge(vertex_1_3, vertex_1_4)
+    graph_circuit.corrected_measure(vertex_1_3, t_multiple=0)
 
-    vertex_three = graph_circuit.add_graph_vertex(measurement_order=None)
+    # H on control
+    vertex_0_4 = graph_circuit.add_graph_vertex(measurement_order=None)
+    graph_circuit.add_edge(vertex_0_3, vertex_0_4)
+    graph_circuit.add_edge(vertex_0_3, vertex_1_4)
+    graph_circuit.corrected_measure(vertex_0_3, t_multiple=0)
 
-    with pytest.raises(
-        Exception,
-        match="An insufficient number of initialisation registers were created. A new vertex cannot be added.",
-    ):
-        graph_circuit.add_graph_vertex(measurement_order=None)
-
-    with pytest.raises(
-        Exception,
-        match="Please ensure that edges point towards unmeasured qubits. In this case 3 is an output but 2 is not.",
-    ):
-        graph_circuit.add_edge(
-            vertex_one=vertex_three,
-            vertex_two=vertex_two,
-        )
-
-    with pytest.raises(
-        Exception,
-        match="There is no vertex with the index 4. Existing vertices are \[0, 1, 2, 3\].",
-    ):
-        graph_circuit.add_edge(
-            vertex_one=4,
-            vertex_two=vertex_two,
-        )
-
-    with pytest.raises(
-        Exception,
-        match="There is no vertex with the index 5. Existing vertices are \[0, 1, 2, 3\].",
-    ):
-        graph_circuit.add_edge(
-            vertex_one=vertex_three,
-            vertex_two=5,
-        )
-
-    graph_circuit.add_edge(
-        vertex_one=vertex_two,
-        vertex_two=vertex_three,
-    )
-
-    graph_circuit.add_edge(
-        vertex_one=vertex_one,
-        vertex_two=vertex_three,
-    )
-
-    with pytest.raises(
-        Exception,
-        match="Vertices \[2\] have a measurement order but have not been measured. Please measure them, or set their order to None.",
-    ):
-        output_dict = graph_circuit.get_outputs()
-
-    graph_circuit.corrected_measure(vertex_two)
-    output_dict = graph_circuit.get_outputs()
-
-    graph_circuit.H(output_dict[3])
-
-    output_meas_reg = graph_circuit.add_c_register(name="output measure", size=2)
-    graph_circuit.Measure(output_dict[1], output_meas_reg[0])
-    graph_circuit.Measure(output_dict[3], output_meas_reg[1])
+    graph_circuit.corrected_measure(vertex_0_4, t_multiple=0)
+    graph_circuit.corrected_measure(vertex_1_4, t_multiple=0)
 
     backend = QuantinuumBackend(
         device_name="H1-1LE",
         api_handler=QuantinuumAPIOffline(),
     )
 
-    compiled_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
+    compiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
+
     n_shots = 100
-    result = backend.run_circuit(circuit=compiled_circuit, n_shots=n_shots)
-    assert result.get_counts(cbits=output_meas_reg)[output_state] == n_shots
+    result = backend.run_circuit(circuit=compiled_graph_circuit, n_shots=n_shots)
+    out_meas_reg = [
+        graph_circuit.vertex_reg[vertex_0_4][0],
+        graph_circuit.vertex_reg[vertex_1_4][0],
+    ]
+    assert result.get_counts(cbits=out_meas_reg)[output_state] == n_shots
 
 
 def test_error_messages():

@@ -216,7 +216,11 @@ def test_3_q_ghz():
         circuit=graph_circuit, optimisation_level=0
     )
     n_shots = 1000
-    result = backend.run_circuit(circuit=compiled_graph_circuit, n_shots=n_shots)
+    result = backend.run_circuit(
+        circuit=compiled_graph_circuit,
+        n_shots=n_shots,
+        seed=0,
+    )
     output_reg = [
         graph_circuit.vertex_reg[vertex_layer_1_2_h][0],
         graph_circuit.vertex_reg[vertex_layer_2_1][0],
@@ -783,7 +787,7 @@ def test_randomness_generation():
     )
 
     for cbits in reg_one:
-        assert abs(result.get_counts(cbits=[cbits])[(0,)] - n_shots / 2) < 35
+        assert abs(result.get_counts(cbits=[cbits])[(0,)] - n_shots / 2) <= 1.5 * (n_shots ** 0.5)
 
     for cbits in reg_two:
-        assert abs(result.get_counts(cbits=[cbits])[(0,)] - n_shots / 2) < 35
+        assert abs(result.get_counts(cbits=[cbits])[(0,)] - n_shots / 2) <= 1.5 * (n_shots ** 0.5)

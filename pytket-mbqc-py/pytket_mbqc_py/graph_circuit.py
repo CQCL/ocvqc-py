@@ -5,11 +5,11 @@ and automatically adding measurement corrections.
 """
 
 from functools import reduce
-from typing import List, Union, cast
+from typing import List, Union, cast, Optional
 
 import networkx as nx  # type:ignore
 from pytket import Qubit
-from pytket.circuit.logic_exp import BitLogicExp, BitZero
+from pytket.circuit.logic_exp import BitLogicExp, BitZero, BitNot
 from pytket.unit_id import Bit, BitRegister, UnitID
 
 from pytket_mbqc_py.qubit_manager import QubitManager
@@ -47,6 +47,7 @@ class GraphCircuit(QubitManager):
         self,
         n_physical_qubits: int,
         n_logical_qubits: int,
+        vertex_is_dummy: Optional[List[bool]] = None,
     ) -> None:
         """Initialisation method. Creates tools to track
         the graph state structure and the measurement corrections.
@@ -65,6 +66,13 @@ class GraphCircuit(QubitManager):
 
         self.measurement_order_list = []
 
+        # TODO: Check that this colour is valid, which is to say there are
+        # no coloured vertices which neighbour each other.
+        # It's not quite clear how to do this as we do not know the full
+        # graph until the end.
+
+        self.vertex_is_dummy = vertex_is_dummy
+
         # There is one register per vertex.
         # The bits in the register are as follows:
         #   - 0 : Storage for measurement results.
@@ -72,6 +80,8 @@ class GraphCircuit(QubitManager):
         #   - 2 : Second random initialisation bit.
         #   - 3 : Third random initialisation bit.
         #   - 4 : X correction register.
+        #   - 5 : Is dummy register
+        #   - 6 : Dummy randomness
         # When qubits are added they will be initialised in this
         # random register. This is except for the case of input qubits
         # which are initialised in the 0 state, and in which case this
@@ -85,22 +95,51 @@ class GraphCircuit(QubitManager):
         self.vertex_reg = [
             self.add_c_register(
                 name=f"vertex_{vertex_index}",
-                size=5,
+                size=7,
             )
             for vertex_index in range(n_logical_qubits)
         ]
 
         self.populate_random_bits(
             bit_list=[
-                bit for register in self.vertex_reg for bit in register.to_list()[1:4]
+                bit for register in self.vertex_reg
+                for bit in register.to_list()[1:4] + [register.to_list()[6]]
             ]
         )
+
+        if self.vertex_is_dummy is not None:
+
+            if not len(self.vertex_is_dummy) == n_logical_qubits:
+                raise Exception(
+                    "There must be a colour for each of the logical qubits. "
+                    f"In this case there are {len(n_logical_qubits)} "
+                    f"logical qubits and {len(self.vertex_is_dummy)} colours."
+                )
+            
+            self.add_c_setbits(
+                values = self.vertex_is_dummy,
+                args = [
+                    register[5] for register in self.vertex_reg
+                ]
+            )
 
         # Isolate the initialisation randomness generation from the
         # rest of the circuit.
         self.add_barrier(
             units=cast(List[UnitID], self.qubits) + cast(List[UnitID], self.bits)
         )
+
+    @property
+    def dummy_register_list(self):
+        return [
+            register for is_dummy, register in zip(self.vertex_is_dummy, self.vertex_reg) if is_dummy
+        ]
+        
+    @property
+    def test_register_list(self):
+        return [
+            register for is_dummy, register in zip(self.vertex_is_dummy, self.vertex_reg) if not is_dummy
+        ]
 
     def populate_random_bits(
         self,
@@ -194,7 +233,9 @@ class GraphCircuit(QubitManager):
         index = len(self.vertex_qubit)
 
         qubit = self.get_qubit(measure_bit=self.vertex_reg[index][0])
-        self.H(qubit)
+        self.H(qubit, condition=BitNot(self.vertex_reg[index][5]))
+        # self.X(qubit, condition=self.vertex_reg[index][5] & self.vertex_reg[index][6])
+        # TODO: Add randomness here to flip the bit if it is a dummy.
         self._add_vertex(qubit=qubit, measurement_order=measurement_order)
 
         # The graph state is randomly initialised based on the
@@ -560,7 +601,7 @@ class GraphCircuit(QubitManager):
             # Add an x correction to the flow of the
             # measured vertex.
             self.add_classicalexpbox_bit(
-                self.vertex_reg[vertex][0] ^ self.vertex_reg[vertex_flow][4],
+                (self.vertex_reg[vertex][0] & BitNot(self.vertex_reg[vertex][5])) ^ self.vertex_reg[vertex_flow][4],
                 [self.vertex_reg[vertex_flow][4]],
             )
 

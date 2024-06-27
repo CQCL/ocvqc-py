@@ -491,63 +491,35 @@ class GraphCircuit(QubitManager):
                     + f"but there is no vertex with order {vertex_measure_order - 1}."
                 )
 
-        # Apply X correction according to correction register.
-        # This is to correct for measurement outcomes.
-        self.X(
-            self.vertex_qubit[vertex],
-            condition=self.vertex_reg[vertex][4],
-        )
-
+        # Required to invert random T from initialisation.
         self.T(
             self.vertex_qubit[vertex],
-            # Required to invert random T from initialisation.
             condition=self.vertex_reg[vertex][1],
-        )
-        self.S(
+        ).S(
             self.vertex_qubit[vertex],
-            # Required to invert random T from initialisation.
-            # This additional term is required to account for the case where
-            # the correcting T is commuted through an X correction.
-            condition=(self.vertex_reg[vertex][1] & self.vertex_reg[vertex][4]),
-        )
-
-        self.S(
+            condition=self.vertex_reg[vertex][1],
+        ).Z(
             self.vertex_qubit[vertex],
-            # Required to invert random T from initialisation.
             condition=self.vertex_reg[vertex][1],
         )
 
+        # Required to invert random S from initialisation.
         self.S(
             self.vertex_qubit[vertex],
-            # Required to invert random S from initialisation.
+            condition=self.vertex_reg[vertex][2],
+        ).Z(
+            self.vertex_qubit[vertex],
             condition=self.vertex_reg[vertex][2],
         )
 
+        # Required to invert random Z from initialisation.
         self.Z(
             self.vertex_qubit[vertex],
-            condition=(
-                # Required to invert random T from initialisation.
-                self.vertex_reg[vertex][1]
-                # Required to invert random S from initialisation.
-                ^ self.vertex_reg[vertex][2]
-                # Required to invert random Z from initialisation.
-                ^ self.vertex_reg[vertex][3]
-                # Required to invert random S from initialisation.
-                # This additional term is required to account for the case where
-                # the correcting S is commuted through an X correction.
-                ^ (self.vertex_reg[vertex][2] & self.vertex_reg[vertex][4])
-                # Required to invert random T from initialisation.
-                # This additional term is required to account for the case where
-                # the correcting S is commuted through an X correction.
-                ^ (self.vertex_reg[vertex][1] & self.vertex_reg[vertex][4])
-                # Required to invert random T from initialisation.
-                # This additional term is required to account for the case where
-                # the correcting T is commuted through an X correction.
-                ^ (self.vertex_reg[vertex][1] & self.vertex_reg[vertex][4])
-            ),
+            condition=self.vertex_reg[vertex][3],
         )
 
         # Rotate measurement basis.
+        # Note that measurement angle is inverted if a correction is required.
         # TODO: These measurements should be combined with the above
         # so that the measurement angles are hidden by the initialisation
         # angles.
@@ -556,9 +528,13 @@ class GraphCircuit(QubitManager):
         if inverse_t_multiple // 4:
             self.Z(self.vertex_qubit[vertex])
         if (inverse_t_multiple % 4) // 2:
-            self.S(self.vertex_qubit[vertex])
+            self.S(self.vertex_qubit[vertex]).Z(
+                self.vertex_qubit[vertex], condition=self.vertex_reg[vertex][4]
+            )
         if inverse_t_multiple % 2:
-            self.T(self.vertex_qubit[vertex])
+            self.T(self.vertex_qubit[vertex]).S(
+                self.vertex_qubit[vertex], condition=self.vertex_reg[vertex][4]
+            ).Z(self.vertex_qubit[vertex], condition=self.vertex_reg[vertex][4])
         self.H(self.vertex_qubit[vertex])
 
         # measure and apply the necessary z corrections

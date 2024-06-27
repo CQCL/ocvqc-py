@@ -107,6 +107,13 @@ class GraphCircuit(QubitManager):
             ]
         )
 
+        self.is_test_bit = Bit(name='is test bit', index=0)
+        self.add_bit(id=self.is_test_bit)
+        self.add_c_setbits(
+            values=[self.vertex_is_dummy is not None],
+            args=[self.is_test_bit],
+        )
+
         if self.vertex_is_dummy is not None:
 
             if not len(self.vertex_is_dummy) == n_logical_qubits:
@@ -131,12 +138,16 @@ class GraphCircuit(QubitManager):
 
     @property
     def dummy_register_list(self):
+        if self.vertex_is_dummy is None:
+            return None
         return [
             register for is_dummy, register in zip(self.vertex_is_dummy, self.vertex_reg) if is_dummy
         ]
         
     @property
     def test_register_list(self):
+        if self.vertex_is_dummy is None:
+            return None
         return [
             register for is_dummy, register in zip(self.vertex_is_dummy, self.vertex_reg) if not is_dummy
         ]
@@ -232,10 +243,11 @@ class GraphCircuit(QubitManager):
 
         index = len(self.vertex_qubit)
 
+        # TODO: Add a check that vertex_is_dummy is long enough.
+
         qubit = self.get_qubit(measure_bit=self.vertex_reg[index][0])
         self.H(qubit, condition=BitNot(self.vertex_reg[index][5]))
-        # self.X(qubit, condition=self.vertex_reg[index][5] & self.vertex_reg[index][6])
-        # TODO: Add randomness here to flip the bit if it is a dummy.
+        self.X(qubit, condition=self.vertex_reg[index][5] & self.vertex_reg[index][6])
         self._add_vertex(qubit=qubit, measurement_order=measurement_order)
 
         # The graph state is randomly initialised based on the
@@ -287,6 +299,9 @@ class GraphCircuit(QubitManager):
             is measured after vertex_one. This would not allow corrections
             from that inverse flow to propagate to vertex_one.
         """
+
+        # TODO: Add a check that you are not adding an edge between
+        # coloured vertices.
 
         if vertex_one not in self.entanglement_graph.nodes:
             raise Exception(
@@ -439,6 +454,27 @@ class GraphCircuit(QubitManager):
             target=[self.vertex_reg[vertex][0]],
         )
 
+    def _get_dummy_correction_expression(self, vertex: int) -> BitLogicExp:
+
+        neighbour_reg_list = [
+            self.vertex_reg[neighbour][5] & self.vertex_reg[neighbour][6]
+            for neighbour in self.entanglement_graph.neighbors(n=vertex)
+        ]
+
+        # This happens of this vertex has no neighbours.
+        if len(neighbour_reg_list) == 0:
+            return BitZero()
+
+        return reduce(lambda a, b: a ^ b, neighbour_reg_list)
+
+    def _apply_dummy_correction(self, vertex: int) -> None:
+
+        condition = self._get_dummy_correction_expression(vertex=vertex)
+        self.add_classicalexpbox_bit(
+            expression=self.vertex_reg[vertex][0] ^ (condition & BitNot(self.vertex_reg[vertex][5])),
+            target=[self.vertex_reg[vertex][0]],
+        )
+
     def corrected_measure(self, vertex: int, t_multiple: int = 0) -> None:
         """Perform a measurement, applying the appropriate corrections.
         Corrections required on the relevant flow qubit are also updated.
@@ -561,27 +597,43 @@ class GraphCircuit(QubitManager):
 
         # Rotate measurement basis.
         # Note that measurement angle is inverted if a correction is required.
+        # Note that there is no measurement rotation in the case of test rounds.
         # TODO: These measurements should be combined with the above
         # so that the measurement angles are hidden by the initialisation
         # angles.
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8
         if inverse_t_multiple // 4:
-            self.Z(self.vertex_qubit[vertex])
+            self.Z(
+                self.vertex_qubit[vertex],
+                condition=BitNot(self.is_test_bit)
+            )
         if (inverse_t_multiple % 4) // 2:
-            self.S(self.vertex_qubit[vertex]).Z(
-                self.vertex_qubit[vertex], condition=self.vertex_reg[vertex][4]
+            self.S(
+                self.vertex_qubit[vertex],
+                condition=BitNot(self.is_test_bit)
+            ).Z(
+                self.vertex_qubit[vertex],
+                condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
             )
         if inverse_t_multiple % 2:
-            self.T(self.vertex_qubit[vertex]).S(
-                self.vertex_qubit[vertex], condition=self.vertex_reg[vertex][4]
-            ).Z(self.vertex_qubit[vertex], condition=self.vertex_reg[vertex][4])
+            self.T(
+                self.vertex_qubit[vertex],
+                condition=BitNot(self.is_test_bit)
+            ).S(
+                self.vertex_qubit[vertex],
+                condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
+            ).Z(
+                self.vertex_qubit[vertex],
+                condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
+            )
         self.H(self.vertex_qubit[vertex])
 
         # measure and apply the necessary z corrections
         # classically.
         self.managed_measure(qubit=self.vertex_qubit[vertex])
         self._apply_classical_z_correction(vertex=vertex)
+        self._apply_dummy_correction(vertex=vertex)
         self.vertex_measured[vertex] = True
 
         # Check that the vertex has at most one flow vertex
@@ -600,8 +652,13 @@ class GraphCircuit(QubitManager):
 
             # Add an x correction to the flow of the
             # measured vertex.
+            # Note that dummy vertices should not get nor receive corrections
             self.add_classicalexpbox_bit(
-                (self.vertex_reg[vertex][0] & BitNot(self.vertex_reg[vertex][5])) ^ self.vertex_reg[vertex_flow][4],
+                (
+                    self.vertex_reg[vertex][0]
+                    & BitNot(self.vertex_reg[vertex][5])
+                    & BitNot(self.vertex_reg[vertex_flow][5])
+                ) ^ self.vertex_reg[vertex_flow][4],
                 [self.vertex_reg[vertex_flow][4]],
             )
 

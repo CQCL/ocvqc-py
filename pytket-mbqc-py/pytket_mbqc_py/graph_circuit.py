@@ -5,11 +5,11 @@ and automatically adding measurement corrections.
 """
 
 from functools import reduce
-from typing import List, Union, cast, Optional
+from typing import List, Optional, Union, cast
 
 import networkx as nx  # type:ignore
 from pytket import Qubit
-from pytket.circuit.logic_exp import BitLogicExp, BitZero, BitNot
+from pytket.circuit.logic_exp import BitLogicExp, BitNot, BitZero
 from pytket.unit_id import Bit, BitRegister, UnitID
 
 from pytket_mbqc_py.qubit_manager import QubitManager
@@ -34,6 +34,9 @@ class GraphCircuit(QubitManager):
         Entry i corresponds to the position in the order at which
         vertex i is measured. If None then vertex is taken not to be
         measured, which is to say it is an output.
+    :ivar vertex_is_dummy_list: List of lists of boolean values.
+        Each sublist can be taken to indicate a colour, while the lists
+        together define a colouring.
     """
 
     entanglement_graph: nx.Graph
@@ -42,12 +45,13 @@ class GraphCircuit(QubitManager):
     vertex_qubit: List[Qubit]
     vertex_measured: List[bool]
     vertex_reg: List[BitRegister]
+    vertex_is_dummy_list: List[List[bool]]
 
     def __init__(
         self,
         n_physical_qubits: int,
         n_logical_qubits: int,
-        vertex_is_dummy: Optional[List[bool]] = None,
+        vertex_is_dummy_list: List[List[bool]] = [],
     ) -> None:
         """Initialisation method. Creates tools to track
         the graph state structure and the measurement corrections.
@@ -55,6 +59,9 @@ class GraphCircuit(QubitManager):
         :param n_physical_qubits: The number of physical qubits available.
         :param n_logical_qubits: The number of vertices in the graph state.
             This is used to initialise the appropriate number of registers.
+        :param vertex_is_dummy_list: List of lists of boolean values.
+            Each sublist can be taken to indicate a colour, while the lists
+            together define a colouring.
         """
         super().__init__(n_physical_qubits=n_physical_qubits)
 
@@ -71,7 +78,7 @@ class GraphCircuit(QubitManager):
         # It's not quite clear how to do this as we do not know the full
         # graph until the end.
 
-        self.vertex_is_dummy = vertex_is_dummy
+        self.vertex_is_dummy_list = vertex_is_dummy_list
 
         # There is one register per vertex.
         # The bits in the register are as follows:
@@ -102,55 +109,56 @@ class GraphCircuit(QubitManager):
 
         self.populate_random_bits(
             bit_list=[
-                bit for register in self.vertex_reg
+                bit
+                for register in self.vertex_reg
                 for bit in register.to_list()[1:4] + [register.to_list()[6]]
             ]
         )
 
-        self.is_test_bit = Bit(name='is test bit', index=0)
+        self.is_test_bit = Bit(name="is test bit", index=0)
         self.add_bit(id=self.is_test_bit)
-        self.add_c_setbits(
-            values=[self.vertex_is_dummy is not None],
-            args=[self.is_test_bit],
-        )
 
-        if self.vertex_is_dummy is not None:
-
-            if not len(self.vertex_is_dummy) == n_logical_qubits:
-                raise Exception(
-                    "There must be a colour for each of the logical qubits. "
-                    f"In this case there are {len(n_logical_qubits)} "
-                    f"logical qubits and {len(self.vertex_is_dummy)} colours."
-                )
-            
+        if len(self.vertex_is_dummy_list) == 0:
             self.add_c_setbits(
-                values = self.vertex_is_dummy,
-                args = [
-                    register[5] for register in self.vertex_reg
-                ]
+                values=[False],
+                args=[self.is_test_bit],
             )
+
+        elif len(self.vertex_is_dummy_list) == 2:
+            self.populate_random_bits(bit_list=[self.is_test_bit])
+
+            for vertex_is_dummy in self.vertex_is_dummy_list:
+                if not len(vertex_is_dummy) == n_logical_qubits:
+                    raise Exception(
+                        "There must be a colour for each of the logical qubits. "
+                        f"In this case there are {n_logical_qubits} "
+                        f"logical qubits and {len(vertex_is_dummy)} colours."
+                    )
+
+            colour_choice_bit = Bit(name="colour_choice_bit", index=0)
+            self.add_bit(colour_choice_bit)
+            self.populate_random_bits(bit_list=[colour_choice_bit])
+
+            self.add_c_setbits(
+                values=self.vertex_is_dummy_list[0],
+                args=[register[5] for register in self.vertex_reg],
+                condition=colour_choice_bit & self.is_test_bit,
+            )
+
+            self.add_c_setbits(
+                values=self.vertex_is_dummy_list[1],
+                args=[register[5] for register in self.vertex_reg],
+                condition=BitNot(colour_choice_bit) & self.is_test_bit,
+            )
+
+        else:
+            raise Exception("You can only use 0 or two colours.")
 
         # Isolate the initialisation randomness generation from the
         # rest of the circuit.
         self.add_barrier(
             units=cast(List[UnitID], self.qubits) + cast(List[UnitID], self.bits)
         )
-
-    @property
-    def dummy_register_list(self):
-        if self.vertex_is_dummy is None:
-            return None
-        return [
-            register for is_dummy, register in zip(self.vertex_is_dummy, self.vertex_reg) if is_dummy
-        ]
-        
-    @property
-    def test_register_list(self):
-        if self.vertex_is_dummy is None:
-            return None
-        return [
-            register for is_dummy, register in zip(self.vertex_is_dummy, self.vertex_reg) if not is_dummy
-        ]
 
     def populate_random_bits(
         self,
@@ -197,6 +205,11 @@ class GraphCircuit(QubitManager):
             for qubit in qubit_list:
                 self.H(qubit=qubit)
                 self.managed_measure(qubit=qubit)
+
+        # chunk indicates how many chunks have been completed
+        # before the beginning of the following for loop
+        # not even chunk 0 had been populated. As such we have -1 here.
+        chunk = -1
 
         # We repeatedly initialise and measure qubits in groups
         # of size n_randomness_qubits. This allows randomness generation
@@ -455,7 +468,16 @@ class GraphCircuit(QubitManager):
         )
 
     def _get_dummy_correction_expression(self, vertex: int) -> BitLogicExp:
+        """Create correction expressions. A correction is needed is the
+        neighbour is a dummy and was initialised in the 1 state.
+        The relevant expression is obtained by combining the value for
+        all neighbours.
 
+        :param vertex: Vertex to be corrected.
+        :type vertex: int
+        :return: Logical expression giving correction.
+        :rtype: BitLogicExp
+        """
         neighbour_reg_list = [
             self.vertex_reg[neighbour][5] & self.vertex_reg[neighbour][6]
             for neighbour in self.entanglement_graph.neighbors(n=vertex)
@@ -468,10 +490,16 @@ class GraphCircuit(QubitManager):
         return reduce(lambda a, b: a ^ b, neighbour_reg_list)
 
     def _apply_dummy_correction(self, vertex: int) -> None:
+        """Apply dummy correction expression. This correction is applied
+        if the vertex itself is not a dummy vertex.
 
+        :param vertex: _description_
+        :type vertex: int
+        """
         condition = self._get_dummy_correction_expression(vertex=vertex)
         self.add_classicalexpbox_bit(
-            expression=self.vertex_reg[vertex][0] ^ (condition & BitNot(self.vertex_reg[vertex][5])),
+            expression=self.vertex_reg[vertex][0]
+            ^ (condition & BitNot(self.vertex_reg[vertex][5])),
             target=[self.vertex_reg[vertex][0]],
         )
 
@@ -604,28 +632,19 @@ class GraphCircuit(QubitManager):
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8
         if inverse_t_multiple // 4:
-            self.Z(
-                self.vertex_qubit[vertex],
-                condition=BitNot(self.is_test_bit)
-            )
+            self.Z(self.vertex_qubit[vertex], condition=BitNot(self.is_test_bit))
         if (inverse_t_multiple % 4) // 2:
-            self.S(
+            self.S(self.vertex_qubit[vertex], condition=BitNot(self.is_test_bit)).Z(
                 self.vertex_qubit[vertex],
-                condition=BitNot(self.is_test_bit)
-            ).Z(
-                self.vertex_qubit[vertex],
-                condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
+                condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit),
             )
         if inverse_t_multiple % 2:
-            self.T(
+            self.T(self.vertex_qubit[vertex], condition=BitNot(self.is_test_bit)).S(
                 self.vertex_qubit[vertex],
-                condition=BitNot(self.is_test_bit)
-            ).S(
-                self.vertex_qubit[vertex],
-                condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
+                condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit),
             ).Z(
                 self.vertex_qubit[vertex],
-                condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
+                condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit),
             )
         self.H(self.vertex_qubit[vertex])
 
@@ -659,7 +678,8 @@ class GraphCircuit(QubitManager):
                     self.vertex_reg[vertex][0]
                     & BitNot(self.vertex_reg[vertex][5])
                     & BitNot(self.vertex_reg[vertex_flow][5])
-                ) ^ self.vertex_reg[vertex_flow][4],
+                )
+                ^ self.vertex_reg[vertex_flow][4],
                 [self.vertex_reg[vertex_flow][4]],
             )
 

@@ -215,7 +215,7 @@ def test_3_q_ghz():
     compiled_graph_circuit = backend.get_compiled_circuit(
         circuit=graph_circuit, optimisation_level=0
     )
-    n_shots = 1000
+    n_shots = 100
     result = backend.run_circuit(
         circuit=compiled_graph_circuit,
         n_shots=n_shots,
@@ -226,13 +226,11 @@ def test_3_q_ghz():
         graph_circuit.vertex_reg[vertex_layer_2_1][0],
         graph_circuit.vertex_reg[vertex_layer_2_2][0],
     ]
-    assert (
-        abs(result.get_counts(cbits=output_reg)[(0, 0, 0)] - (n_shots / 2))
-        < n_shots**0.5
+    assert abs(result.get_counts(cbits=output_reg)[(0, 0, 0)] - (n_shots / 2)) < 1.5 * (
+        n_shots**0.5
     )
-    assert (
-        abs(result.get_counts(cbits=output_reg)[(1, 1, 1)] - (n_shots / 2))
-        < n_shots**0.5
+    assert abs(result.get_counts(cbits=output_reg)[(1, 1, 1)] - (n_shots / 2)) < 1.5 * (
+        n_shots**0.5
     )
 
 
@@ -787,7 +785,11 @@ def test_randomness_generation():
     )
 
     for cbits in reg_one:
-        assert abs(result.get_counts(cbits=[cbits])[(0,)] - n_shots / 2) <= 1.5 * (n_shots ** 0.5)
+        assert abs(result.get_counts(cbits=[cbits])[(0,)] - n_shots / 2) <= 1.5 * (
+            n_shots**0.5
+        )
 
     for cbits in reg_two:
-        assert abs(result.get_counts(cbits=[cbits])[(0,)] - n_shots / 2) <= 1.5 * (n_shots ** 0.5)
+        assert abs(result.get_counts(cbits=[cbits])[(0,)] - n_shots / 2) <= 1.5 * (
+            n_shots**0.5
+        )

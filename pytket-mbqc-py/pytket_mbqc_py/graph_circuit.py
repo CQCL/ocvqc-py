@@ -653,6 +653,7 @@ class GraphCircuit(QubitManager):
             # Add an x correction to the flow of the
             # measured vertex.
             # Note that dummy vertices should not get nor receive corrections
+            # as they are disentangled.
             self.add_classicalexpbox_bit(
                 (
                     self.vertex_reg[vertex][0]

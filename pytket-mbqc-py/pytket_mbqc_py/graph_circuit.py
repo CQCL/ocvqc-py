@@ -78,6 +78,9 @@ class GraphCircuit(QubitManager):
         # It's not quite clear how to do this as we do not know the full
         # graph until the end.
 
+        # TODO: Add check that all vertices are covered by this colouring.
+        # That is to say that all vertices are test vertices at least once.
+
         self.vertex_is_dummy_list = vertex_is_dummy_list
 
         # There is one register per vertex.

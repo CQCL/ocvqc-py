@@ -246,3 +246,37 @@ def test_utility_methods():
     ]
 
     assert graph_circuit.get_failure_rate(result=result) == 0.0
+
+
+@pytest.mark.parametrize(
+    "input_state, output_state",
+    [((0, 0), (0, 0)), ((0, 1), (0, 1)), ((1, 0), (1, 1)), ((1, 1), (1, 0))],
+)
+def test_verified_cnot_utilities(input_state, output_state):
+    control, target = input_state
+
+    backend = QuantinuumBackend(
+        device_name="H1-1LE",
+        api_handler=QuantinuumAPIOffline(),
+    )
+
+    graph_circuit = VerifiedCNOT(control=control, target=target)
+    compiled_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
+
+    n_shots = 100
+    result = backend.run_circuit(circuit=compiled_circuit, n_shots=n_shots)
+
+    assert graph_circuit.get_failure_rate(result=result) == 0.0
+
+    assert list(
+        graph_circuit.get_output_result(result=result)
+        .get_counts(cbits=graph_circuit.out_reg)
+        .keys()
+    ) == [output_state]
+
+    assert abs(
+        graph_circuit.get_output_result(result=result).get_counts(
+            cbits=graph_circuit.out_reg
+        )[output_state]
+        - (n_shots / 2)
+    ) < 1.5 * (n_shots**0.5)

@@ -4,13 +4,16 @@ In particular, for managing graph state construction
 and automatically adding measurement corrections.
 """
 
+from collections import Counter
 from functools import reduce
 from typing import List, Optional, Union, cast
 
 import networkx as nx  # type:ignore
 from pytket import Qubit
+from pytket.backends.backendresult import BackendResult
 from pytket.circuit.logic_exp import BitLogicExp, BitNot, BitZero
 from pytket.unit_id import Bit, BitRegister, UnitID
+from pytket.utils.outcomearray import OutcomeArray
 
 from pytket_mbqc_py.qubit_manager import QubitManager
 
@@ -37,6 +40,7 @@ class GraphCircuit(QubitManager):
     :ivar vertex_is_dummy_list: List of lists of boolean values.
         Each sublist can be taken to indicate a colour, while the lists
         together define a colouring.
+    :ivar is_test_bit: Bit register indicating if this is a test round.
     """
 
     entanglement_graph: nx.Graph
@@ -46,6 +50,7 @@ class GraphCircuit(QubitManager):
     vertex_measured: List[bool]
     vertex_reg: List[BitRegister]
     vertex_is_dummy_list: List[List[bool]]
+    is_test_bit: Bit
 
     def __init__(
         self,
@@ -73,13 +78,18 @@ class GraphCircuit(QubitManager):
 
         self.measurement_order_list = []
 
-        # TODO: Check that this colour is valid, which is to say there are
-        # no coloured vertices which neighbour each other.
-        # It's not quite clear how to do this as we do not know the full
-        # graph until the end.
-
-        # TODO: Add check that all vertices are covered by this colouring.
-        # That is to say that all vertices are test vertices at least once.
+        if vertex_is_dummy_list != []:
+            vertex_not_test = [
+                vertex
+                for vertex in range(n_physical_qubits)
+                if all(
+                    vertex_is_dummy[vertex] for vertex_is_dummy in vertex_is_dummy_list
+                )
+            ]
+            if len(vertex_not_test) > 0:
+                raise Exception(
+                    f"The vertices {vertex_not_test} are never test qubits. "
+                )
 
         self.vertex_is_dummy_list = vertex_is_dummy_list
 
@@ -316,8 +326,13 @@ class GraphCircuit(QubitManager):
             from that inverse flow to propagate to vertex_one.
         """
 
-        # TODO: Add a check that you are not adding an edge between
-        # coloured vertices.
+        if any(
+            (not (vertex_is_dummy[vertex_one] or vertex_is_dummy[vertex_two]))
+            for vertex_is_dummy in self.vertex_is_dummy_list
+        ):
+            raise Exception(
+                f"Vertex {vertex_one} and vertex {vertex_two} " "have the same colour."
+            )
 
         if vertex_one not in self.entanglement_graph.nodes:
             raise Exception(
@@ -711,3 +726,73 @@ class GraphCircuit(QubitManager):
                 "Measurement order must be unique. "
                 + f"A vertex is already measured at order {measurement_order}."
             )
+
+    @property
+    def output_vertices(self) -> List[int]:
+        """Output vertices.
+
+        :return: Output vertices.
+        :rtype: List[int]
+        """
+        return [
+            vertex
+            for vertex, measurement_order in enumerate(self.measurement_order_list)
+            if measurement_order is None
+        ]
+
+    def get_output_result(self, result: BackendResult) -> BackendResult:
+        """Create result object from measurement bits of output vertices.
+
+        :param result: Result object from running this circuit.
+        :raises Exception: Raised if not all output vertices have been
+            measured.
+        :return: Returns reduced result object.
+        :rtype: BackendResult
+        """
+
+        unmeasured_outputs = [
+            vertex
+            for vertex in self.output_vertices
+            if not self.vertex_measured[vertex]
+        ]
+        if len(unmeasured_outputs) > 0:
+            raise Exception(
+                f"Vertices {unmeasured_outputs} are output vertices but "
+                "have not been measured."
+            )
+
+        cbits = [self.vertex_reg[vertex][0] for vertex in self.output_vertices]
+        counts = result.get_counts(cbits + [self.is_test_bit])
+
+        return BackendResult(
+            counts=Counter(
+                {
+                    OutcomeArray.from_readouts([output[:-1]]): count
+                    for output, count in counts.items()
+                    if output[-1] == 0
+                }
+            ),
+            c_bits=cbits,
+        )
+
+    def get_failure_rate(self, result: BackendResult) -> float:
+        """Calculate the failure rate of the test vertices.
+
+        :param result: The result of running this graph circuit.
+        :return: Failure rate.
+        """
+
+        n_tests = 0
+        n_fails = 0
+
+        # Sum the number of test shots, and of those test shots
+        # the number of times the test qubits are measured as 0.
+        for reg in self.vertex_reg:
+            vertex_counts = result.get_counts(cbits=[reg[0], reg[5], self.is_test_bit])
+            for shot, count in vertex_counts.items():
+                if shot[2] == 1:
+                    n_tests += count
+                    if shot[1] == 0:
+                        n_fails += shot[1] * count
+
+        return n_fails / n_tests

@@ -145,3 +145,104 @@ def test_verified_cnot(input_state, output_state):
     assert abs(
         result.get_counts(cbits=[graph_circuit.is_test_bit])[(0,)] - (n_shots / 2)
     ) < 1.5 * (n_shots**0.5)
+
+
+def test_utility_methods():
+    backend = QuantinuumBackend(
+        device_name="H1-1LE",
+        api_handler=QuantinuumAPIOffline(),
+    )
+    n_shots = 1000
+
+    with pytest.raises(
+        Exception,
+        match="There must be a colour for each of the logical qubits. In this case there are 3 logical qubits and 4 colours.",
+    ):
+        graph_circuit = GraphCircuit(
+            n_physical_qubits=2,
+            n_logical_qubits=3,
+            vertex_is_dummy_list=[
+                [True, False, True, False],
+                [False, True, False],
+            ],
+        )
+
+    with pytest.raises(
+        Exception,
+        match="The vertices \[1\] are never test qubits.",
+    ):
+        graph_circuit = GraphCircuit(
+            n_physical_qubits=2,
+            n_logical_qubits=3,
+            vertex_is_dummy_list=[
+                [False, True, False],
+            ],
+        )
+
+    with pytest.raises(
+        Exception,
+        match="You can only use 0 or two colours.",
+    ):
+        graph_circuit = GraphCircuit(
+            n_physical_qubits=2,
+            n_logical_qubits=3,
+            vertex_is_dummy_list=[
+                [False, False, False],
+            ],
+        )
+
+    with pytest.raises(
+        Exception,
+        match="Vertex 0 and vertex 1 have the same colour.",
+    ):
+        graph_circuit = GraphCircuit(
+            n_physical_qubits=2,
+            n_logical_qubits=3,
+            vertex_is_dummy_list=[
+                [False, False, True],
+                [False, True, False],
+            ],
+        )
+
+        vertex_one = graph_circuit.add_graph_vertex(measurement_order=0)
+        vertex_two = graph_circuit.add_graph_vertex(measurement_order=1)
+
+        graph_circuit.add_edge(vertex_one, vertex_two)
+
+    graph_circuit = GraphCircuit(
+        n_physical_qubits=2,
+        n_logical_qubits=3,
+        vertex_is_dummy_list=[
+            [True, False, True],
+            [False, True, False],
+        ],
+    )
+
+    vertex_one = graph_circuit.add_graph_vertex(measurement_order=0)
+    vertex_two = graph_circuit.add_graph_vertex(measurement_order=1)
+
+    graph_circuit.add_edge(vertex_one, vertex_two)
+    graph_circuit.corrected_measure(vertex=vertex_one, t_multiple=4)
+
+    vertex_three = graph_circuit.add_graph_vertex(measurement_order=None)
+    graph_circuit.add_edge(vertex_two, vertex_three)
+    graph_circuit.corrected_measure(vertex=vertex_two, t_multiple=0)
+
+    with pytest.raises(
+        Exception,
+        match="Vertices \[2\] are output vertices but have not been measured.",
+    ):
+        compiled_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
+        result = backend.run_circuit(circuit=compiled_circuit, n_shots=n_shots)
+        graph_circuit.get_output_result(result=result)
+
+    graph_circuit.corrected_measure(vertex=vertex_three, t_multiple=0)
+
+    compiled_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
+    result = backend.run_circuit(circuit=compiled_circuit, n_shots=n_shots)
+
+    assert list(graph_circuit.get_output_result(result=result).get_counts().keys()) == [
+        (1,)
+    ]
+
+    assert graph_circuit.get_failure_rate(result=result) == 0.0

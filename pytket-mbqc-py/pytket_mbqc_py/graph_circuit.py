@@ -6,7 +6,7 @@ and automatically adding measurement corrections.
 
 from collections import Counter
 from functools import reduce
-from typing import List, Optional, Union, cast
+from typing import List, Union, cast
 
 import networkx as nx  # type:ignore
 from pytket import Qubit
@@ -269,8 +269,6 @@ class GraphCircuit(QubitManager):
 
         index = len(self.vertex_qubit)
 
-        # TODO: Add a check that vertex_is_dummy is long enough.
-
         qubit = self.get_qubit(measure_bit=self.vertex_reg[index][0])
         self.H(qubit, condition=BitNot(self.vertex_reg[index][5]))
         self.X(qubit, condition=self.vertex_reg[index][5] & self.vertex_reg[index][6])
@@ -331,7 +329,8 @@ class GraphCircuit(QubitManager):
             for vertex_is_dummy in self.vertex_is_dummy_list
         ):
             raise Exception(
-                f"Vertex {vertex_one} and vertex {vertex_two} " "have the same colour."
+                f"Vertex {vertex_one} and vertex {vertex_two} have the same colour. "
+                "Edges can only be added between vertices of different colours."
             )
 
         if vertex_one not in self.entanglement_graph.nodes:
@@ -486,7 +485,7 @@ class GraphCircuit(QubitManager):
         )
 
     def _get_dummy_correction_expression(self, vertex: int) -> BitLogicExp:
-        """Create correction expressions. A correction is needed is the
+        """Create correction expressions. A correction is needed if the
         neighbour is a dummy and was initialised in the 1 state.
         The relevant expression is obtained by combining the value for
         all neighbours.
@@ -501,7 +500,7 @@ class GraphCircuit(QubitManager):
             for neighbour in self.entanglement_graph.neighbors(n=vertex)
         ]
 
-        # This happens of this vertex has no neighbours.
+        # This happens if this vertex has no neighbours.
         if len(neighbour_reg_list) == 0:
             return BitZero()
 
@@ -689,7 +688,7 @@ class GraphCircuit(QubitManager):
 
             # Add an x correction to the flow of the
             # measured vertex.
-            # Note that dummy vertices should not get nor receive corrections
+            # Note that dummy vertices should not send nor receive corrections
             # as they are disentangled.
             self.add_classicalexpbox_bit(
                 (

@@ -170,18 +170,6 @@ class GraphCircuit(QubitManager):
                     condition=BitNot(colour_choice_bit) & self.is_test_bit,
                 )
 
-            # self.add_c_setbits(
-            #     values=self.vertex_is_dummy_list[0],
-            #     args=[register[5] for register in self.vertex_reg],
-            #     condition=colour_choice_bit & self.is_test_bit,
-            # )
-
-            # self.add_c_setbits(
-            #     values=self.vertex_is_dummy_list[1],
-            #     args=[register[5] for register in self.vertex_reg],
-            #     condition=BitNot(colour_choice_bit) & self.is_test_bit,
-            # )
-
         else:
             raise Exception("You can only use 0 or two colours.")
 
@@ -813,16 +801,21 @@ class GraphCircuit(QubitManager):
                 "Please set the vertex_is_dummy_list variable upon initialisation."
             )
 
+        cbits = [bit for reg in self.vertex_reg for bit in [reg[0], reg[5]]] + [
+            self.is_test_bit
+        ]
+        counts = result.get_counts(cbits=cbits)
+
         n_tests = 0
         n_fails = 0
-
-        # Sum the number of test shots, and of those test shots
-        # the number of times the test qubits are measured as 0.
-        for reg in self.vertex_reg:
-            vertex_counts = result.get_counts(cbits=[reg[0], reg[5], self.is_test_bit])
-            for shot, count in vertex_counts.items():
-                if (shot[2] == 1) and (shot[1] == 0):
-                    n_tests += count
-                    n_fails += shot[0] * count
+        for bit_string, count in counts.items():
+            if bit_string[-1] == 1:
+                n_tests += count
+                errors = sum(
+                    bit_string[2 * i]
+                    for i in range(len(self.vertex_reg))
+                    if bit_string[2 * i + 1] == 0
+                )
+                n_fails += count * min(1, errors)
 
         return n_fails / n_tests

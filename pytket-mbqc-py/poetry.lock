@@ -2583,29 +2583,29 @@ zx = ["autoray (>=0.6.12)", "numba (>=0.60.0)", "quimb (>=1.8.2)"]
 
 [[package]]
 name = "pytket-pecos"
-version = "0.1.27"
+version = "0.1.28"
 description = "This package enables emulation of pytket circuits using the PECOS emulator."
 optional = false
 python-versions = "*"
 files = [
-    {file = "pytket_pecos-0.1.27-py2.py3-none-any.whl", hash = "sha256:c7c5b9af655219897d0a4c3030f92a23c08ac14ee8b5a1cbb2b6eee0ec3145a7"},
-    {file = "pytket_pecos-0.1.27.tar.gz", hash = "sha256:57d4cfbeacd4d2a366f9793b4c8b243fc651563bca5e90ebd68b3786c8812b62"},
+    {file = "pytket_pecos-0.1.28-py2.py3-none-any.whl", hash = "sha256:fc6a665367f967cac7adcdea7f08e6dfa5c9f9db4bed09ec5bfc1d98307c53dd"},
+    {file = "pytket_pecos-0.1.28.tar.gz", hash = "sha256:dbd87eae922dbe2089c741c6532977435cb7f30530d151cac3ae5bd4458946d7"},
 ]
 
 [package.dependencies]
-pytket = ">=1.28.0"
-pytket-phir = ">=0.7.0"
-quantum-pecos = {version = ">=0.6.0.dev3", extras = ["simulators", "wasmtime"]}
+pytket = ">=1.29,<2.0"
+pytket-phir = ">=0.7.3,<0.8.0"
+quantum-pecos = {version = ">=0.6.0.dev3,<0.7", extras = ["simulators", "wasmtime"]}
 
 [[package]]
 name = "pytket-phir"
-version = "0.7.2"
+version = "0.7.3"
 description = "A circuit analyzer and translator from pytket to PHIR"
 optional = false
 python-versions = "<3.13,>=3.10"
 files = [
-    {file = "pytket_phir-0.7.2-py3-none-any.whl", hash = "sha256:c668f30520b05e90238a222d29346f729b65668d909e327d85662e6e31e20555"},
-    {file = "pytket_phir-0.7.2.tar.gz", hash = "sha256:aa98cbd095127217ca4e5c0e2609f0b68b1fd5127d5e9d75d080d6e1f43891cb"},
+    {file = "pytket_phir-0.7.3-py3-none-any.whl", hash = "sha256:8da5857b593f3595ecd5b6e690dd3fffbdf12f6a8ffebeee7b22d7d93b169a06"},
+    {file = "pytket_phir-0.7.3.tar.gz", hash = "sha256:e454ee9ef5ed1d3bc78e2abbd86c78c886a5ffaf8dfbabf384f9aeaae24271b3"},
 ]
 
 [package.dependencies]
@@ -3764,4 +3764,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "<3.12,>=3.10"
-content-hash = "a814b82fc46a3557fbe10614f76ec01e72a27fd58e9cea2484aa8197f780ff46"
+content-hash = "bb075641e9c6e4c52da4d0a8fbdc4412397715f25f38a6e2046964ab0e7b08a3"

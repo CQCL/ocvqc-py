@@ -31,6 +31,12 @@ def test_zero_state():
     output_bit = circuit.vertex_reg[vertex_three][0]
     assert result.get_counts(cbits=[output_bit])[(0,)] == n_shots
 
+    with pytest.raises(
+        Exception,
+        match="There are no test rounds conducted for this instance.",
+    ):
+        circuit.get_failure_rate(result=result)
+
 
 def test_one_state():
     circuit = GraphCircuit(

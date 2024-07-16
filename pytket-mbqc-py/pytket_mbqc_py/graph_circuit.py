@@ -128,7 +128,7 @@ class GraphCircuit(QubitManager):
             ]
         )
 
-        self.is_test_bit = Bit(name="is test bit", index=0)
+        self.is_test_bit = Bit(name="is_test_bit", index=0)
         self.add_bit(id=self.is_test_bit)
 
         if len(self.vertex_is_dummy_list) == 0:
@@ -152,26 +152,31 @@ class GraphCircuit(QubitManager):
             self.add_bit(colour_choice_bit)
             self.populate_random_bits(bit_list=[colour_choice_bit])
 
-            self.add_c_setbits(
-                values=self.vertex_is_dummy_list[0],
-                args=[register[5] for register in self.vertex_reg],
-                condition=colour_choice_bit & self.is_test_bit,
-            )
+            for is_dummy, register in zip(
+                self.vertex_is_dummy_list[0], self.vertex_reg
+            ):
+                self.add_c_setbits(
+                    values=[is_dummy],
+                    args=[register[5]],
+                    condition=colour_choice_bit & self.is_test_bit,
+                )
 
-            self.add_c_setbits(
-                values=self.vertex_is_dummy_list[1],
-                args=[register[5] for register in self.vertex_reg],
-                condition=BitNot(colour_choice_bit) & self.is_test_bit,
-            )
+            for is_dummy, register in zip(
+                self.vertex_is_dummy_list[1], self.vertex_reg
+            ):
+                self.add_c_setbits(
+                    values=[is_dummy],
+                    args=[register[5]],
+                    condition=BitNot(colour_choice_bit) & self.is_test_bit,
+                )
 
         else:
             raise Exception("You can only use 0 or two colours.")
 
         # Isolate the initialisation randomness generation from the
         # rest of the circuit.
-        self.add_barrier(
-            units=cast(List[UnitID], self.qubits) + cast(List[UnitID], self.bits)
-        )
+        self.add_barrier(units=cast(List[UnitID], self.qubits))
+        self.add_barrier(units=cast(List[UnitID], self.bits))
 
     def populate_random_bits(
         self,
@@ -760,8 +765,8 @@ class GraphCircuit(QubitManager):
                 "have not been measured."
             )
 
-        cbits = [self.vertex_reg[vertex][0] for vertex in self.output_vertices]
-        counts = result.get_counts(cbits + [self.is_test_bit])
+        cbits = self.get_vertex_cbits(vertex_list=self.output_vertices)
+        counts = result.get_counts(cbits=cbits + [self.is_test_bit])
 
         return BackendResult(
             counts=Counter(
@@ -774,6 +779,15 @@ class GraphCircuit(QubitManager):
             c_bits=cbits,
         )
 
+    def get_vertex_cbits(self, vertex_list: List[int]) -> List[Bit]:
+        """Return measurement bit corresponding to given vertices.
+
+        :param vertex_list: Vertices to return measurement bits off.
+        :return: Measurement bits corresponding to given vertices.
+        """
+
+        return [self.vertex_reg[vertex][0] for vertex in vertex_list]
+
     def get_failure_rate(self, result: BackendResult) -> float:
         """Calculate the failure rate of the test vertices.
 
@@ -781,17 +795,27 @@ class GraphCircuit(QubitManager):
         :return: Failure rate.
         """
 
+        if len(self.vertex_is_dummy_list) == 0:
+            raise Exception(
+                "There are no test rounds conducted for this instance. "
+                "Please set the vertex_is_dummy_list variable upon initialisation."
+            )
+
+        cbits = [bit for reg in self.vertex_reg for bit in [reg[0], reg[5]]] + [
+            self.is_test_bit
+        ]
+        counts = result.get_counts(cbits=cbits)
+
         n_tests = 0
         n_fails = 0
-
-        # Sum the number of test shots, and of those test shots
-        # the number of times the test qubits are measured as 0.
-        for reg in self.vertex_reg:
-            vertex_counts = result.get_counts(cbits=[reg[0], reg[5], self.is_test_bit])
-            for shot, count in vertex_counts.items():
-                if shot[2] == 1:
-                    n_tests += count
-                    if shot[1] == 0:
-                        n_fails += shot[1] * count
+        for bit_string, count in counts.items():
+            if bit_string[-1] == 1:
+                n_tests += count
+                errors = sum(
+                    bit_string[2 * i]
+                    for i in range(len(self.vertex_reg))
+                    if bit_string[2 * i + 1] == 0
+                )
+                n_fails += count * min(1, errors)
 
         return n_fails / n_tests

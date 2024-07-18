@@ -275,15 +275,15 @@ class GraphCircuit(QubitManager):
         index = len(self.vertex_qubit)
 
         qubit = self.get_qubit(measure_bit=self.vertex_reg[index][0])
-        self.H(qubit, condition=BitNot(self.vertex_reg[index][5]))
-        self.X(qubit, condition=self.vertex_reg[index][5] & self.vertex_reg[index][6])
+        self.H(qubit, condition=self.vertex_reg[index][5])
+        self.Z(qubit, condition=self.vertex_reg[index][5] & self.vertex_reg[index][6])
         self._add_vertex(qubit=qubit, measurement_order=measurement_order)
 
         # The graph state is randomly initialised based on the
         # initialisation register.
-        self.T(qubit, condition=self.vertex_reg[index][1])
-        self.S(qubit, condition=self.vertex_reg[index][2])
-        self.Z(qubit, condition=self.vertex_reg[index][3])
+        self.Rx(0.25, qubit, condition=self.vertex_reg[index][1])
+        self.V(qubit, condition=self.vertex_reg[index][2])
+        self.X(qubit, condition=self.vertex_reg[index][3])
 
         return index
 
@@ -448,7 +448,9 @@ class GraphCircuit(QubitManager):
                 v_of_edge=vertex_two,
             )
 
-        self.CZ(self.vertex_qubit[vertex_one], self.vertex_qubit[vertex_two])
+        self.H(self.vertex_qubit[vertex_one])
+        self.CX(self.vertex_qubit[vertex_one], self.vertex_qubit[vertex_two])
+        self.H(self.vertex_qubit[vertex_one])
 
         self.entanglement_graph.add_edge(
             u_of_edge=vertex_one,
@@ -619,28 +621,29 @@ class GraphCircuit(QubitManager):
                 )
 
         # Required to invert random T from initialisation.
-        self.T(
+        self.Rx(
+            0.25,
             self.vertex_qubit[vertex],
             condition=self.vertex_reg[vertex][1],
-        ).S(
+        ).V(
             self.vertex_qubit[vertex],
             condition=self.vertex_reg[vertex][1],
-        ).Z(
+        ).X(
             self.vertex_qubit[vertex],
             condition=self.vertex_reg[vertex][1],
         )
 
         # Required to invert random S from initialisation.
-        self.S(
+        self.V(
             self.vertex_qubit[vertex],
             condition=self.vertex_reg[vertex][2],
-        ).Z(
+        ).X(
             self.vertex_qubit[vertex],
             condition=self.vertex_reg[vertex][2],
         )
 
         # Required to invert random Z from initialisation.
-        self.Z(
+        self.X(
             self.vertex_qubit[vertex],
             condition=self.vertex_reg[vertex][3],
         )
@@ -654,21 +657,23 @@ class GraphCircuit(QubitManager):
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8
         if inverse_t_multiple // 4:
-            self.Z(self.vertex_qubit[vertex], condition=BitNot(self.is_test_bit))
+            self.X(self.vertex_qubit[vertex], condition=BitNot(self.is_test_bit))
         if (inverse_t_multiple % 4) // 2:
-            self.S(self.vertex_qubit[vertex], condition=BitNot(self.is_test_bit)).Z(
+            self.V(self.vertex_qubit[vertex], condition=BitNot(self.is_test_bit)).X(
                 self.vertex_qubit[vertex],
                 condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit),
             )
         if inverse_t_multiple % 2:
-            self.T(self.vertex_qubit[vertex], condition=BitNot(self.is_test_bit)).S(
+            self.Rx(
+                0.25, self.vertex_qubit[vertex], condition=BitNot(self.is_test_bit)
+            ).V(
                 self.vertex_qubit[vertex],
                 condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit),
-            ).Z(
+            ).X(
                 self.vertex_qubit[vertex],
                 condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit),
             )
-        self.H(self.vertex_qubit[vertex])
+        # self.H(self.vertex_qubit[vertex])
 
         # measure and apply the necessary z corrections
         # classically.

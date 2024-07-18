@@ -99,7 +99,7 @@ class GraphCircuit(QubitManager):
         #   - 1 : First random initialisation bit.
         #   - 2 : Second random initialisation bit.
         #   - 3 : Third random initialisation bit.
-        #   - 4 : X correction register.
+        #   - 4 : Z correction register.
         #   - 5 : Is dummy register
         #   - 6 : Dummy randomness
         # When qubits are added they will be initialised in this
@@ -275,8 +275,12 @@ class GraphCircuit(QubitManager):
         index = len(self.vertex_qubit)
 
         qubit = self.get_qubit(measure_bit=self.vertex_reg[index][0])
+
+        # Initialise random X basis state if this vertex is a dummy.
+        # Otherwise |0> state is created.
         self.H(qubit, condition=self.vertex_reg[index][5])
         self.Z(qubit, condition=self.vertex_reg[index][5] & self.vertex_reg[index][6])
+
         self._add_vertex(qubit=qubit, measurement_order=measurement_order)
 
         # The graph state is randomly initialised based on the
@@ -448,6 +452,7 @@ class GraphCircuit(QubitManager):
                 v_of_edge=vertex_two,
             )
 
+        # Act entanglement gate.
         self.H(self.vertex_qubit[vertex_one])
         self.CX(self.vertex_qubit[vertex_one], self.vertex_qubit[vertex_two])
         self.H(self.vertex_qubit[vertex_one])
@@ -457,14 +462,14 @@ class GraphCircuit(QubitManager):
             v_of_edge=vertex_two,
         )
 
-    def _get_z_correction_expression(self, vertex: int) -> BitLogicExp:
+    def _get_x_correction_expression(self, vertex: int) -> BitLogicExp:
         """Create logical expression by taking the parity of
-        the X corrections that have to be applied to the neighbouring
-        qubits. If there are no neighbours then None will be returned.
+        the Z corrections that have to be applied to the neighbouring
+        qubits.
 
         :param vertex: Vertex to be corrected.
         :return: Logical expression calculating the parity
-            of the neighbouring x correction registers.
+            of the neighbouring Z correction registers.
         """
 
         neighbour_reg_list = [
@@ -478,14 +483,14 @@ class GraphCircuit(QubitManager):
 
         return reduce(lambda a, b: a ^ b, neighbour_reg_list)
 
-    def _apply_classical_z_correction(self, vertex: int) -> None:
-        """Apply Z correction on measurement result. This correction is calculated
-        using the X corrections that have to be applied to the neighbouring
+    def _apply_classical_x_correction(self, vertex: int) -> None:
+        """Apply X correction on measurement result. This correction is calculated
+        using the Z corrections that have to be applied to the neighbouring
         qubits.
 
         :param vertex: Vertex to be corrected.
         """
-        condition = self._get_z_correction_expression(vertex=vertex)
+        condition = self._get_x_correction_expression(vertex=vertex)
         self.add_classicalexpbox_bit(
             expression=self.vertex_reg[vertex][0] ^ condition,
             target=[self.vertex_reg[vertex][0]],
@@ -493,7 +498,7 @@ class GraphCircuit(QubitManager):
 
     def _get_dummy_correction_expression(self, vertex: int) -> BitLogicExp:
         """Create correction expressions. A correction is needed if the
-        neighbour is a dummy and was initialised in the 1 state.
+        neighbour is a dummy and was initialised in the |-> state.
         The relevant expression is obtained by combining the value for
         all neighbours.
 
@@ -620,7 +625,7 @@ class GraphCircuit(QubitManager):
                     + f"but there is no vertex with order {vertex_measure_order - 1}."
                 )
 
-        # Required to invert random T from initialisation.
+        # Required to invert random Rx(0.25) from initialisation.
         self.Rx(
             0.25,
             self.vertex_qubit[vertex],
@@ -633,7 +638,7 @@ class GraphCircuit(QubitManager):
             condition=self.vertex_reg[vertex][1],
         )
 
-        # Required to invert random S from initialisation.
+        # Required to invert random V from initialisation.
         self.V(
             self.vertex_qubit[vertex],
             condition=self.vertex_reg[vertex][2],
@@ -642,7 +647,7 @@ class GraphCircuit(QubitManager):
             condition=self.vertex_reg[vertex][2],
         )
 
-        # Required to invert random Z from initialisation.
+        # Required to invert random X from initialisation.
         self.X(
             self.vertex_qubit[vertex],
             condition=self.vertex_reg[vertex][3],
@@ -673,12 +678,11 @@ class GraphCircuit(QubitManager):
                 self.vertex_qubit[vertex],
                 condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit),
             )
-        # self.H(self.vertex_qubit[vertex])
 
-        # measure and apply the necessary z corrections
+        # measure and apply the necessary x corrections
         # classically.
         self.managed_measure(qubit=self.vertex_qubit[vertex])
-        self._apply_classical_z_correction(vertex=vertex)
+        self._apply_classical_x_correction(vertex=vertex)
         self._apply_dummy_correction(vertex=vertex)
         self.vertex_measured[vertex] = True
 

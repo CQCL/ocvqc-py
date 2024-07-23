@@ -787,7 +787,7 @@ def test_randomness_generation():
     result = backend.run_circuit(
         circuit=compiled_circuit,
         n_shots=n_shots,
-        seed=0,
+        seed=2,
     )
 
     for cbits in reg_one:

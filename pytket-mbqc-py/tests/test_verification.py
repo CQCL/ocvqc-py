@@ -138,7 +138,7 @@ def test_verified_cnot(input_state, output_state):
             # If this vertex is a compute vertex,
             # and this is a test round, then
             # the measurement outcome should be 0
-            if (not shot[5]) and (shot[7]):
+            if (not shot[5]) and (shot[8]):
                 assert not shot[0]
 
     # Check roughly half of the shots are tests

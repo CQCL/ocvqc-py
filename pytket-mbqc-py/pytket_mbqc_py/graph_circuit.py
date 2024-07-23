@@ -102,6 +102,7 @@ class GraphCircuit(QubitManager):
         #   - 4 : Z correction register.
         #   - 5 : Is dummy register
         #   - 6 : Dummy randomness
+        #   - 7 : Measurement one-time pad
         # When qubits are added they will be initialised in this
         # random register. This is except for the case of input qubits
         # which are initialised in the 0 state, and in which case this
@@ -115,7 +116,7 @@ class GraphCircuit(QubitManager):
         self.vertex_reg = [
             self.add_c_register(
                 name=f"vertex_{vertex_index}",
-                size=7,
+                size=8,
             )
             for vertex_index in range(n_logical_qubits)
         ]
@@ -124,7 +125,9 @@ class GraphCircuit(QubitManager):
             bit_list=[
                 bit
                 for register in self.vertex_reg
-                for bit in register.to_list()[1:4] + [register.to_list()[6]]
+                for bit in register.to_list()[1:4]
+                + [register.to_list()[6]]
+                + [register.to_list()[7]]
             ]
         )
 
@@ -288,6 +291,9 @@ class GraphCircuit(QubitManager):
         self.Rx(0.25, qubit, condition=self.vertex_reg[index][1])
         self.V(qubit, condition=self.vertex_reg[index][2])
         self.X(qubit, condition=self.vertex_reg[index][3])
+
+        # Measurement one-time pad.
+        self.X(qubit, condition=self.vertex_reg[index][7])
 
         return index
 
@@ -684,6 +690,10 @@ class GraphCircuit(QubitManager):
         self.managed_measure(qubit=self.vertex_qubit[vertex])
         self._apply_classical_x_correction(vertex=vertex)
         self._apply_dummy_correction(vertex=vertex)
+        self.add_classicalexpbox_bit(
+            expression=self.vertex_reg[vertex][0] ^ self.vertex_reg[vertex][7],
+            target=[self.vertex_reg[vertex][0]],
+        )
         self.vertex_measured[vertex] = True
 
         # Check that the vertex has at most one flow vertex

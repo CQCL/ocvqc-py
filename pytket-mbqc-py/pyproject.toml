@@ -19,7 +19,7 @@ pytest-parallel = "^0.1.1"
 py = "^1.11.0"
 docstr-coverage = "^2.3.2"
 sphinx = "^7.4.4"
-sphinx-autodoc-typehints = "^2.1.1"
+sphinx-autodoc-typehints = "^2.2.2"
 nbmake = "^1.5.4"
 
 [build-system]

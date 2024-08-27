@@ -277,8 +277,6 @@ class GraphCircuit(QubitManager):
 
         index = len(self.vertex_qubit)
 
-        print("initialise", index, measurement_order)
-
         qubit = self.get_qubit(measure_bit=self.vertex_reg[index][0])
 
         # Initialise random X basis state if this vertex is a dummy.
@@ -340,8 +338,6 @@ class GraphCircuit(QubitManager):
             is measured after vertex_one. This would not allow corrections
             from that inverse flow to propagate to vertex_one.
         """
-
-        print("edge", vertex_one, vertex_two)
 
         if any(
             (not (vertex_is_dummy[vertex_one] or vertex_is_dummy[vertex_two]))
@@ -559,7 +555,6 @@ class GraphCircuit(QubitManager):
         :raises Exception: Raised if there are vertex in the past of this
             one which have not been measured.
         """
-        print("measure", vertex, t_multiple)
         # Check that the vertex being measured has not already been measured.
         if self.vertex_measured[vertex]:
             raise Exception(

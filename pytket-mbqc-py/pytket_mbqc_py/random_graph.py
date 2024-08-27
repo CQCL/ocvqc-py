@@ -82,7 +82,6 @@ class RandomIdentityGraph(GraphCircuit):
         # Perform each layer. The inverse layers are in a separate loop
         # below.
         for layer in range(n_layers // 2):
-
             # This is the measurement order of the first qubit created above.
             # This is to say the measurement order of the 0th entry in the
             # qubit list.
@@ -179,7 +178,6 @@ class RandomIdentityGraph(GraphCircuit):
 
         # Now the inverse of the above is added.
         for layer in range(n_layers // 2):
-            
             # First the rotations are inverted.
             for index in range(n_qubits):
                 measurement_order = measurement_order_to_layer + index

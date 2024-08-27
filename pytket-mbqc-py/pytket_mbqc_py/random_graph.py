@@ -1,15 +1,52 @@
-from typing import Tuple
+"""
+Module for generating MBQC patterns which correspond to repeating
+sequences of CNOT gates, random rotations, and their inverse.
+"""
 
-from numpy.random import default_rng
+from typing import Tuple, Union
+
+from numpy.random import Generator, default_rng
 
 from pytket_mbqc_py import GraphCircuit
 
 
 class RandomIdentityGraph(GraphCircuit):
+    """
+    A class generating MBQC patterns which correspond to repeating
+    sequences of CNOT gates, random rotations, and their inverse.
+    This is the say that the overall effect of the circuit is the identity.
+    In particular, CNOT gates are acted between
+    neighbouring qubits in a line architecture. This is then followed by random
+    single qubit rotations. This pattern is repeated
+    many times. This circuit is translated into an MBQC pattern.
+    """
+
     def __init__(
-        self, n_layers: int, input_string: Tuple[int], rng=default_rng()
+        self, n_layers: int, input_string: Tuple[int], rng: Generator = default_rng()
     ) -> None:
-        assert n_layers % 2 == 0
+        """Initialisation method.
+
+        :param n_layers: The number of repeated CNOT gate single qubit
+            rotation layers. Note that this must be an even number
+            as the circuit includes each layer and its inverse.
+        :type n_layers: int
+        :param input_string: The computational basis state in which the
+            input to the circuit should be initialised. Note that this will
+            also be the outcome in the ideal case.
+        :type input_string: Tuple[int]
+        :param rng: Randomness generator for random single qubit rotations,
+            defaults to default_rng()
+        :type rng: Generator, optional
+        :raises Exception: Raised if the number of layers is not even.
+        """
+
+        if n_layers % 2 != 0:
+            raise Exception(
+                "The number of layers must be an even number. "
+                "This is because the circuit must include a circuit and "
+                "its inverse."
+            )
+
         n_qubits = len(input_string)
 
         super().__init__(
@@ -28,7 +65,7 @@ class RandomIdentityGraph(GraphCircuit):
 
         print("Initialise")
         for i, qubit in enumerate(qubit_list):
-            measurement_order = n_qubits + i
+            measurement_order: Union[None, int] = n_qubits + i
             init_qubit = self.add_graph_vertex(measurement_order=measurement_order)
             self.add_edge(vertex_one=qubit, vertex_two=init_qubit)
             self.corrected_measure(vertex=qubit, t_multiple=4 * input_string[i])

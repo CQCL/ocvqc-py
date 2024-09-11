@@ -630,17 +630,14 @@ class GraphCircuit(QubitManager):
                     + f"{vertex_measure_order} "
                     + f"but there is no vertex with order {vertex_measure_order - 1}."
                 )
-            
+
         x_condition: BitLogicExp = BitZero()
         v_condition: BitLogicExp = BitZero()
         r_condition: BitLogicExp = BitZero()
-            
+
         # Rotate measurement basis.
         # Note that measurement angle is inverted if a correction is required.
         # Note that there is no measurement rotation in the case of test rounds.
-        # TODO: These measurements should be combined with the above
-        # so that the measurement angles are hidden by the initialisation
-        # angles.
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8
         if inverse_t_multiple // 4:
@@ -654,9 +651,11 @@ class GraphCircuit(QubitManager):
             v_condition ^= r_condition & BitNot(self.is_test_bit)
             r_condition ^= BitNot(self.is_test_bit)
 
-            x_condition ^= v_condition & (self.vertex_reg[vertex][4] & BitNot(self.is_test_bit))
+            x_condition ^= v_condition & (
+                self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
+            )
             v_condition ^= self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
-            
+
             x_condition ^= self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
 
         # Required to invert random Rx(0.25) from initialisation.
@@ -681,12 +680,12 @@ class GraphCircuit(QubitManager):
 
         x_condition ^= v_init_correction & v_condition
         v_condition ^= v_init_correction
-        
+
         self.V(
             self.vertex_qubit[vertex],
             condition=v_condition,
         )
-        
+
         self.X(
             self.vertex_qubit[vertex],
             condition=(

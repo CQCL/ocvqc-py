@@ -630,35 +630,11 @@ class GraphCircuit(QubitManager):
                     + f"{vertex_measure_order} "
                     + f"but there is no vertex with order {vertex_measure_order - 1}."
                 )
-
-        # Required to invert random Rx(0.25) from initialisation.
-        self.Rx(
-            0.25,
-            self.vertex_qubit[vertex],
-            condition=self.vertex_reg[vertex][1],
-        ).V(
-            self.vertex_qubit[vertex],
-            condition=self.vertex_reg[vertex][1],
-        ).X(
-            self.vertex_qubit[vertex],
-            condition=self.vertex_reg[vertex][1],
-        )
-
-        # Required to invert random V from initialisation.
-        self.V(
-            self.vertex_qubit[vertex],
-            condition=self.vertex_reg[vertex][2],
-        ).X(
-            self.vertex_qubit[vertex],
-            condition=self.vertex_reg[vertex][2],
-        )
-
-        # Required to invert random X from initialisation.
-        self.X(
-            self.vertex_qubit[vertex],
-            condition=self.vertex_reg[vertex][3],
-        )
-
+            
+        x_condition: BitLogicExp = BitZero()
+        v_condition: BitLogicExp = BitZero()
+        r_condition: BitLogicExp = BitZero()
+            
         # Rotate measurement basis.
         # Note that measurement angle is inverted if a correction is required.
         # Note that there is no measurement rotation in the case of test rounds.
@@ -668,22 +644,62 @@ class GraphCircuit(QubitManager):
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8
         if inverse_t_multiple // 4:
-            self.X(self.vertex_qubit[vertex], condition=BitNot(self.is_test_bit))
+            x_condition ^= BitNot(self.is_test_bit)
         if (inverse_t_multiple % 4) // 2:
-            self.V(self.vertex_qubit[vertex], condition=BitNot(self.is_test_bit)).X(
-                self.vertex_qubit[vertex],
-                condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit),
-            )
+            x_condition ^= v_condition & BitNot(self.is_test_bit)
+            v_condition ^= BitNot(self.is_test_bit)
+
+            x_condition ^= self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
         if inverse_t_multiple % 2:
-            self.Rx(
-                0.25, self.vertex_qubit[vertex], condition=BitNot(self.is_test_bit)
-            ).V(
-                self.vertex_qubit[vertex],
-                condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit),
-            ).X(
-                self.vertex_qubit[vertex],
-                condition=self.vertex_reg[vertex][4] & BitNot(self.is_test_bit),
-            )
+            v_condition ^= r_condition & BitNot(self.is_test_bit)
+            r_condition ^= BitNot(self.is_test_bit)
+
+            x_condition ^= v_condition & (self.vertex_reg[vertex][4] & BitNot(self.is_test_bit))
+            v_condition ^= self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
+            
+            x_condition ^= self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
+
+        # Required to invert random Rx(0.25) from initialisation.
+        r_init_correction = self.vertex_reg[vertex][1]
+
+        x_condition ^= v_condition & (r_condition & r_init_correction)
+        v_condition ^= r_condition & r_init_correction
+        r_condition ^= r_init_correction
+
+        self.Rx(
+            0.25,
+            self.vertex_qubit[vertex],
+            condition=r_condition,
+        )
+
+        v_init_correction = (
+            # Required to invert random Rx(0.25) from initialisation.
+            self.vertex_reg[vertex][1]
+            # Required to invert random V from initialisation.
+            ^ self.vertex_reg[vertex][2]
+        )
+
+        x_condition ^= v_init_correction & v_condition
+        v_condition ^= v_init_correction
+        
+        self.V(
+            self.vertex_qubit[vertex],
+            condition=v_condition,
+        )
+        
+        self.X(
+            self.vertex_qubit[vertex],
+            condition=(
+                # Required to invert random Rx(0.25) from initialisation.
+                self.vertex_reg[vertex][1]
+                # Required to invert random V from initialisation.
+                ^ self.vertex_reg[vertex][2]
+                ^ (self.vertex_reg[vertex][1] & self.vertex_reg[vertex][2])
+                # Required to invert random X from initialisation.
+                ^ self.vertex_reg[vertex][3]
+                ^ x_condition
+            ),
+        )
 
         # measure and apply the necessary x corrections
         # classically.

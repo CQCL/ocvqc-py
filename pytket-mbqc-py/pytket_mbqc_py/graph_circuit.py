@@ -639,7 +639,6 @@ class GraphCircuit(QubitManager):
         r_condition: BitLogicExp = BitZero()
 
         # Rotate measurement basis.
-        # Note that measurement angle is inverted if a correction is required.
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8
 
@@ -654,9 +653,6 @@ class GraphCircuit(QubitManager):
             x_condition ^= v_condition
             v_condition = BitNot(v_condition)
 
-            # Add additional pi rotation to that V inverse is applied
-            x_condition ^= self.vertex_reg[vertex][4]
-
         if inverse_t_multiple % 2:
             # Correct measurement. Here we are bumping the number of
             # R rotations, and so may need to bump the number of X and V
@@ -665,16 +661,39 @@ class GraphCircuit(QubitManager):
             v_condition ^= r_condition
             r_condition = BitNot(r_condition)
 
-            # Add additional 3pi/2 rotation so that r inverse is applied.
-            x_condition ^= v_condition & self.vertex_reg[vertex][4]
-            v_condition ^= self.vertex_reg[vertex][4]
-            x_condition ^= self.vertex_reg[vertex][4]
-
         # There is no measurement rotation in the case of test rounds.
+        # Here the condition is being set to false in that case.
         r_condition &= BitNot(self.is_test_bit)
         v_condition &= BitNot(self.is_test_bit)
         x_condition &= BitNot(self.is_test_bit)
 
+        # The measurement angle needs to be inverted if a correction is
+        # required. Here we calculate the inverse rotations conditions.
+        inverse_x_condition: BitLogicExp = BitZero()
+        inverse_v_condition: BitLogicExp = BitZero()
+        inverse_r_condition: BitLogicExp = BitZero()
+
+        # An X, V and R rotation is requires to invert an R
+        inverse_x_condition ^= r_condition
+        inverse_v_condition ^= r_condition
+        inverse_r_condition ^= r_condition
+
+        # An X and V rotation is requires to invert an V. This may also
+        # bump the number of X rotations.
+        inverse_x_condition ^= inverse_v_condition & v_condition
+        inverse_v_condition ^= v_condition
+        inverse_x_condition ^= v_condition
+
+        # An X rotation is required to invert an X.
+        inverse_x_condition ^= x_condition
+
+        # The conditions are replaced by the inverse rotation if a correction
+        # is required.
+        r_condition ^= (r_condition ^ inverse_r_condition) & self.vertex_reg[vertex][4]
+        v_condition ^= (v_condition ^ inverse_v_condition) & self.vertex_reg[vertex][4]
+        x_condition ^= (x_condition ^ inverse_x_condition) & self.vertex_reg[vertex][4]
+
+        # Now we invert the initialisation one time pad.
         # Required to invert random Rx(0.25) from initialisation.
         r_init_correction = self.vertex_reg[vertex][1]
 

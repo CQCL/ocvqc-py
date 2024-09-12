@@ -662,6 +662,7 @@ class GraphCircuit(QubitManager):
             r_condition = BitNot(r_condition)
 
         # There is no measurement rotation in the case of test rounds.
+        # Here the condition is being set to false in that case.
         r_condition &= BitNot(self.is_test_bit)
         v_condition &= BitNot(self.is_test_bit)
         x_condition &= BitNot(self.is_test_bit)
@@ -686,7 +687,7 @@ class GraphCircuit(QubitManager):
         # An X rotation is required to invert an X.
         inverse_x_condition ^= x_condition
 
-        # The contritions are replaced by the inverse rotation if a correction
+        # The conditions are replaced by the inverse rotation if a correction
         # is required.
         r_condition ^= (r_condition ^ inverse_r_condition) & self.vertex_reg[vertex][4]
         v_condition ^= (v_condition ^ inverse_v_condition) & self.vertex_reg[vertex][4]

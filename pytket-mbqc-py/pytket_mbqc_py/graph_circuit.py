@@ -725,7 +725,7 @@ class GraphCircuit(QubitManager):
         self.add_classicalexpbox_bit(
             expression=self.vertex_reg[vertex][0] ^ self.vertex_reg[vertex][7],
             target=[self.vertex_reg[vertex][0]],
-        ) # Undo measurement result one time pad.
+        )  # Undo measurement result one time pad.
         self.vertex_measured[vertex] = True
 
         # Check that the vertex has at most one flow vertex
@@ -745,7 +745,7 @@ class GraphCircuit(QubitManager):
             # Add an x correction to the flow of the
             # measured vertex.
             self.add_classicalexpbox_bit(
-                expression = self.vertex_reg[vertex][0] ^ self.vertex_reg[vertex_flow][4],
+                expression=self.vertex_reg[vertex][0] ^ self.vertex_reg[vertex_flow][4],
                 target=[self.vertex_reg[vertex_flow][4]],
             )
 

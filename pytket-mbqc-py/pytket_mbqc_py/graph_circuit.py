@@ -282,7 +282,7 @@ class GraphCircuit(QubitManager):
         # Initialise random X basis state if this vertex is a dummy.
         # Otherwise |0> state is created.
         self.H(qubit, condition=self.vertex_reg[index][5])
-        self.Z(qubit, condition=self.vertex_reg[index][5] & self.vertex_reg[index][6])
+        self.Z(qubit, condition=self.vertex_reg[index][6])
 
         self._add_vertex(qubit=qubit, measurement_order=measurement_order)
 
@@ -522,6 +522,10 @@ class GraphCircuit(QubitManager):
         if len(neighbour_reg_list) == 0:
             return BitZero()
 
+        # Note that for dummy vertices, all of the surrounding vertices
+        # should be traps. As such this expression will always be false.
+        # In the case that this is a compute round, no vertices are dummies,
+        # and so this expression will again be false.
         return reduce(lambda a, b: a ^ b, neighbour_reg_list)
 
     def _apply_dummy_correction(self, vertex: int) -> None:
@@ -533,8 +537,7 @@ class GraphCircuit(QubitManager):
         """
         condition = self._get_dummy_correction_expression(vertex=vertex)
         self.add_classicalexpbox_bit(
-            expression=self.vertex_reg[vertex][0]
-            ^ (condition & BitNot(self.vertex_reg[vertex][5])),
+            expression=self.vertex_reg[vertex][0] ^ condition,
             target=[self.vertex_reg[vertex][0]],
         )
 
@@ -722,7 +725,7 @@ class GraphCircuit(QubitManager):
         self.add_classicalexpbox_bit(
             expression=self.vertex_reg[vertex][0] ^ self.vertex_reg[vertex][7],
             target=[self.vertex_reg[vertex][0]],
-        )
+        )  # Undo measurement result one time pad.
         self.vertex_measured[vertex] = True
 
         # Check that the vertex has at most one flow vertex
@@ -741,16 +744,9 @@ class GraphCircuit(QubitManager):
 
             # Add an x correction to the flow of the
             # measured vertex.
-            # Note that dummy vertices should not send nor receive corrections
-            # as they are disentangled.
             self.add_classicalexpbox_bit(
-                (
-                    self.vertex_reg[vertex][0]
-                    & BitNot(self.vertex_reg[vertex][5])
-                    & BitNot(self.vertex_reg[vertex_flow][5])
-                )
-                ^ self.vertex_reg[vertex_flow][4],
-                [self.vertex_reg[vertex_flow][4]],
+                expression=self.vertex_reg[vertex][0] ^ self.vertex_reg[vertex_flow][4],
+                target=[self.vertex_reg[vertex_flow][4]],
             )
 
     def _add_vertex_check(self, measurement_order: Union[int, None]) -> None:

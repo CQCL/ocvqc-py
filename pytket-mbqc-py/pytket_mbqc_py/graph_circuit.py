@@ -637,7 +637,6 @@ class GraphCircuit(QubitManager):
 
         # Rotate measurement basis.
         # Note that measurement angle is inverted if a correction is required.
-        # Note that
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8
 
@@ -646,7 +645,9 @@ class GraphCircuit(QubitManager):
             x_condition = BitNot(x_condition)
 
         if (inverse_t_multiple % 4) // 2:
-            # Correct measurement
+            # Correct measurement. Here we are bumping the number of
+            # V rotations, and so may need to bump the number of X rotations
+            # if a V rotation already exists.
             x_condition ^= v_condition
             v_condition = BitNot(v_condition)
 
@@ -654,7 +655,9 @@ class GraphCircuit(QubitManager):
             x_condition ^= self.vertex_reg[vertex][4]
 
         if inverse_t_multiple % 2:
-            # Correct measurement
+            # Correct measurement. Here we are bumping the number of
+            # R rotations, and so may need to bump the number of X and V
+            # rotations if an R rotation already exists.
             x_condition ^= v_condition & r_condition
             v_condition ^= r_condition
             r_condition = BitNot(r_condition)

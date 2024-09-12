@@ -637,26 +637,37 @@ class GraphCircuit(QubitManager):
 
         # Rotate measurement basis.
         # Note that measurement angle is inverted if a correction is required.
-        # Note that there is no measurement rotation in the case of test rounds.
+        # Note that
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8
+
         if inverse_t_multiple // 4:
-            x_condition ^= BitNot(self.is_test_bit)
+            # Correct measurement
+            x_condition = BitNot(x_condition)
+
         if (inverse_t_multiple % 4) // 2:
-            x_condition ^= v_condition & BitNot(self.is_test_bit)
-            v_condition ^= BitNot(self.is_test_bit)
+            # Correct measurement
+            x_condition ^= v_condition
+            v_condition = BitNot(v_condition)
 
-            x_condition ^= self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
+            # Add additional pi rotation to that V inverse is applied
+            x_condition ^= self.vertex_reg[vertex][4]
+
         if inverse_t_multiple % 2:
-            v_condition ^= r_condition & BitNot(self.is_test_bit)
-            r_condition ^= BitNot(self.is_test_bit)
+            # Correct measurement
+            x_condition ^= v_condition & r_condition
+            v_condition ^= r_condition
+            r_condition = BitNot(r_condition)
 
-            x_condition ^= v_condition & (
-                self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
-            )
-            v_condition ^= self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
+            # Add additional 3pi/2 rotation so that r inverse is applied.
+            x_condition ^= v_condition & self.vertex_reg[vertex][4]
+            v_condition ^= self.vertex_reg[vertex][4]
+            x_condition ^= self.vertex_reg[vertex][4]
 
-            x_condition ^= self.vertex_reg[vertex][4] & BitNot(self.is_test_bit)
+        # There is no measurement rotation in the case of test rounds.
+        r_condition &= BitNot(self.is_test_bit)
+        v_condition &= BitNot(self.is_test_bit)
+        x_condition &= BitNot(self.is_test_bit)
 
         # Required to invert random Rx(0.25) from initialisation.
         r_init_correction = self.vertex_reg[vertex][1]

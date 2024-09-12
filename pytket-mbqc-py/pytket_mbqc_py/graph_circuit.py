@@ -282,7 +282,7 @@ class GraphCircuit(QubitManager):
         # Initialise random X basis state if this vertex is a dummy.
         # Otherwise |0> state is created.
         self.H(qubit, condition=self.vertex_reg[index][5])
-        self.Z(qubit, condition=self.vertex_reg[index][5] & self.vertex_reg[index][6])
+        self.Z(qubit, condition=self.vertex_reg[index][6])
 
         self._add_vertex(qubit=qubit, measurement_order=measurement_order)
 

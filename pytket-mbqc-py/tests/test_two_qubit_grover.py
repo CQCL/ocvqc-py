@@ -1,5 +1,6 @@
 import pytest
 from pytket.extensions.quantinuum import QuantinuumAPIOffline, QuantinuumBackend
+from pytket.passes import DecomposeClassicalExp
 
 from pytket_mbqc_py import TwoQubitGrover
 
@@ -13,7 +14,7 @@ from pytket_mbqc_py import TwoQubitGrover
         (3, (1, 1)),
     ],
 )
-def test_cnot_grid(tau, ideal_output):
+def test_two_qubit_grove_grid(tau, ideal_output):
     graph_circuit = TwoQubitGrover(tau=tau)
 
     backend = QuantinuumBackend(
@@ -21,6 +22,7 @@ def test_cnot_grid(tau, ideal_output):
         api_handler=QuantinuumAPIOffline(),
     )
 
+    # DecomposeClassicalExp().apply(graph_circuit)
     compiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
 
     n_shots = 100

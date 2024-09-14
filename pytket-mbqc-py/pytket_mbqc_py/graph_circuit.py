@@ -11,7 +11,7 @@ from typing import List, Union, cast
 import networkx as nx  # type:ignore
 from pytket import Qubit
 from pytket.backends.backendresult import BackendResult
-from pytket.circuit.logic_exp import BitLogicExp, BitNot, BitZero
+from pytket.circuit.logic_exp import BitLogicExp
 from pytket.unit_id import Bit, BitRegister, UnitID
 from pytket.utils.outcomearray import OutcomeArray
 
@@ -103,8 +103,6 @@ class GraphCircuit(QubitManager):
         #   - 5 : Is dummy register
         #   - 6 : Dummy randomness
         #   - 7 : Measurement one-time pad
-        #   - 8-10 : Measurement correction scratch registers
-        #   - 11-13 : Inverse measurement correction scratch registers
         # When qubits are added they will be initialised in this
         # random register. This is except for the case of input qubits
         # which are initialised in the 0 state, and in which case this
@@ -118,7 +116,7 @@ class GraphCircuit(QubitManager):
         self.vertex_reg = [
             self.add_c_register(
                 name=f"vertex_{vertex_index}",
-                size=14,
+                size=8,
             )
             for vertex_index in range(n_logical_qubits)
         ]
@@ -135,6 +133,14 @@ class GraphCircuit(QubitManager):
 
         self.is_test_bit = Bit(name="is_test_bit", index=0)
         self.add_bit(id=self.is_test_bit)
+
+        self.zero_bit = Bit(name="zero_bit", index=0)
+        self.add_bit(id=self.zero_bit)
+        self.add_c_setbits([False], [self.zero_bit])
+
+        self.one_bit = Bit(name="one_bit", index=0)
+        self.add_bit(id=self.one_bit)
+        self.add_c_setbits([True], [self.one_bit])
 
         if len(self.vertex_is_dummy_list) == 0:
             self.add_c_setbits(
@@ -172,7 +178,7 @@ class GraphCircuit(QubitManager):
                 self.add_c_setbits(
                     values=[is_dummy],
                     args=[register[5]],
-                    condition=BitNot(colour_choice_bit) & self.is_test_bit,
+                    condition=(colour_choice_bit ^ self.one_bit) & self.is_test_bit,
                 )
 
         else:
@@ -470,7 +476,7 @@ class GraphCircuit(QubitManager):
             v_of_edge=vertex_two,
         )
 
-    def _get_x_correction_expression(self, vertex: int) -> BitLogicExp:
+    def _get_x_correction_expression(self, vertex: int) -> Union[BitLogicExp, Bit]:
         """Create logical expression by taking the parity of
         the Z corrections that have to be applied to the neighbouring
         qubits.
@@ -487,7 +493,7 @@ class GraphCircuit(QubitManager):
 
         # This happens of this vertex has no neighbours.
         if len(neighbour_reg_list) == 0:
-            return BitZero()
+            return self.zero_bit
 
         return reduce(lambda a, b: a ^ b, neighbour_reg_list)
 
@@ -504,7 +510,7 @@ class GraphCircuit(QubitManager):
             target=[self.vertex_reg[vertex][0]],
         )
 
-    def _get_dummy_correction_expression(self, vertex: int) -> BitLogicExp:
+    def _get_dummy_correction_expression(self, vertex: int) -> Union[BitLogicExp, Bit]:
         """Create correction expressions. A correction is needed if the
         neighbour is a dummy and was initialised in the |-> state.
         The relevant expression is obtained by combining the value for
@@ -522,7 +528,7 @@ class GraphCircuit(QubitManager):
 
         # This happens if this vertex has no neighbours.
         if len(neighbour_reg_list) == 0:
-            return BitZero()
+            return self.zero_bit
 
         # Note that for dummy vertices, all of the surrounding vertices
         # should be traps. As such this expression will always be false.
@@ -636,46 +642,65 @@ class GraphCircuit(QubitManager):
                     + f"but there is no vertex with order {vertex_measure_order - 1}."
                 )
 
-        x_condition: BitLogicExp = BitZero()
-        v_condition: BitLogicExp = BitZero()
-        r_condition: BitLogicExp = BitZero()
+        # x_condition: BitLogicExp = BitZero()
+        # v_condition: BitLogicExp = BitZero()
+        # r_condition: BitLogicExp = BitZero()
+
+        # # The measurement angle needs to be inverted if a correction is
+        # # required. Here we calculate the inverse rotations conditions.
+        # inverse_x_condition: BitLogicExp = BitZero()
+        # inverse_v_condition: BitLogicExp = BitZero()
+        # inverse_r_condition: BitLogicExp = BitZero()
+
+        # self.add_c_setbits([False] * 6, [self.vertex_reg[vertex][i] for i in range(8,14)])
+
+        # x_condition: BitLogicExp = BitZero()
+        # v_condition: BitLogicExp = BitZero()
+        # r_condition: BitLogicExp = BitZero()
 
         # The measurement angle needs to be inverted if a correction is
         # required. Here we calculate the inverse rotations conditions.
-        inverse_x_condition: BitLogicExp = BitZero()
-        inverse_v_condition: BitLogicExp = BitZero()
-        inverse_r_condition: BitLogicExp = BitZero()
-
-        self.add_c_setbits([False] * 6, [self.vertex_reg[vertex][i] for i in range(8,14)])
+        # inverse_x_condition: BitLogicExp = BitZero()
+        # inverse_v_condition: BitLogicExp = BitZero()
+        # inverse_r_condition: BitLogicExp = BitZero()
 
         # Rotate measurement basis.
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8
-        
+
+        r_condition: Union[BitLogicExp, Bit] = self.zero_bit
+        v_condition: Union[BitLogicExp, Bit] = self.zero_bit
+        x_condition: Union[BitLogicExp, Bit] = self.zero_bit
+        inverse_x_condition: Union[BitLogicExp, Bit] = self.zero_bit
+        inverse_v_condition: Union[BitLogicExp, Bit] = self.zero_bit
+        inverse_r_condition: Union[BitLogicExp, Bit] = self.zero_bit
+
         # There is no measurement rotation in the case of test rounds.
         # Here the condition is being set to false in that case.
         if inverse_t_multiple % 2:
-            r_condition = BitNot(self.is_test_bit)
+            r_condition = self.is_test_bit ^ self.one_bit
 
             # An X, V and R rotation is requires to invert an R
-            inverse_x_condition = BitNot(self.is_test_bit)
-            inverse_v_condition = BitNot(self.is_test_bit)
-            inverse_r_condition = BitNot(self.is_test_bit)
+            inverse_x_condition = self.is_test_bit ^ self.one_bit
+            inverse_v_condition = self.is_test_bit ^ self.one_bit
+            inverse_r_condition = self.is_test_bit ^ self.one_bit
 
         if (inverse_t_multiple % 4) // 2:
-            v_condition = BitNot(self.is_test_bit)
+            v_condition = self.is_test_bit ^ self.one_bit
 
             # An X and V rotation is requires to invert an V. This may also
             # bump the number of X rotations.
-            inverse_x_condition ^= inverse_v_condition & BitNot(self.is_test_bit)
-            inverse_v_condition ^= BitNot(self.is_test_bit)
-            inverse_x_condition ^= BitNot(self.is_test_bit)
+            inverse_x_condition ^= inverse_v_condition & (
+                self.is_test_bit ^ self.one_bit
+            )
+            inverse_v_condition ^= self.is_test_bit ^ self.one_bit
+            inverse_x_condition ^= self.is_test_bit ^ self.one_bit
 
         if inverse_t_multiple // 4:
-            x_condition = BitNot(self.is_test_bit)
+            x_condition = self.is_test_bit ^ self.one_bit
 
             # An X rotation is required to invert an X.
-            inverse_x_condition ^= BitNot(self.is_test_bit)
+            inverse_x_condition ^= self.is_test_bit ^ self.one_bit
 
         # The conditions are replaced by the inverse rotation if a correction
         # is required.

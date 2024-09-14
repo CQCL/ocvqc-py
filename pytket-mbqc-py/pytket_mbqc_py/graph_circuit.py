@@ -103,6 +103,8 @@ class GraphCircuit(QubitManager):
         #   - 5 : Is dummy register
         #   - 6 : Dummy randomness
         #   - 7 : Measurement one-time pad
+        #   - 8-10 : Measurement correction scratch registers
+        #   - 11-13 : Inverse measurement correction scratch registers
         # When qubits are added they will be initialised in this
         # random register. This is except for the case of input qubits
         # which are initialised in the 0 state, and in which case this
@@ -116,7 +118,7 @@ class GraphCircuit(QubitManager):
         self.vertex_reg = [
             self.add_c_register(
                 name=f"vertex_{vertex_index}",
-                size=8,
+                size=14,
             )
             for vertex_index in range(n_logical_qubits)
         ]
@@ -638,54 +640,42 @@ class GraphCircuit(QubitManager):
         v_condition: BitLogicExp = BitZero()
         r_condition: BitLogicExp = BitZero()
 
-        # Rotate measurement basis.
-        inverse_t_multiple = 8 - t_multiple
-        inverse_t_multiple = inverse_t_multiple % 8
-
-        if inverse_t_multiple // 4:
-            # Correct measurement
-            x_condition = BitNot(x_condition)
-
-        if (inverse_t_multiple % 4) // 2:
-            # Correct measurement. Here we are bumping the number of
-            # V rotations, and so may need to bump the number of X rotations
-            # if a V rotation already exists.
-            x_condition ^= v_condition
-            v_condition = BitNot(v_condition)
-
-        if inverse_t_multiple % 2:
-            # Correct measurement. Here we are bumping the number of
-            # R rotations, and so may need to bump the number of X and V
-            # rotations if an R rotation already exists.
-            x_condition ^= v_condition & r_condition
-            v_condition ^= r_condition
-            r_condition = BitNot(r_condition)
-
-        # There is no measurement rotation in the case of test rounds.
-        # Here the condition is being set to false in that case.
-        r_condition &= BitNot(self.is_test_bit)
-        v_condition &= BitNot(self.is_test_bit)
-        x_condition &= BitNot(self.is_test_bit)
-
         # The measurement angle needs to be inverted if a correction is
         # required. Here we calculate the inverse rotations conditions.
         inverse_x_condition: BitLogicExp = BitZero()
         inverse_v_condition: BitLogicExp = BitZero()
         inverse_r_condition: BitLogicExp = BitZero()
 
-        # An X, V and R rotation is requires to invert an R
-        inverse_x_condition ^= r_condition
-        inverse_v_condition ^= r_condition
-        inverse_r_condition ^= r_condition
+        self.add_c_setbits([False] * 6, [self.vertex_reg[vertex][i] for i in range(8,14)])
 
-        # An X and V rotation is requires to invert an V. This may also
-        # bump the number of X rotations.
-        inverse_x_condition ^= inverse_v_condition & v_condition
-        inverse_v_condition ^= v_condition
-        inverse_x_condition ^= v_condition
+        # Rotate measurement basis.
+        inverse_t_multiple = 8 - t_multiple
+        inverse_t_multiple = inverse_t_multiple % 8
+        
+        # There is no measurement rotation in the case of test rounds.
+        # Here the condition is being set to false in that case.
+        if inverse_t_multiple % 2:
+            r_condition = BitNot(self.is_test_bit)
 
-        # An X rotation is required to invert an X.
-        inverse_x_condition ^= x_condition
+            # An X, V and R rotation is requires to invert an R
+            inverse_x_condition = BitNot(self.is_test_bit)
+            inverse_v_condition = BitNot(self.is_test_bit)
+            inverse_r_condition = BitNot(self.is_test_bit)
+
+        if (inverse_t_multiple % 4) // 2:
+            v_condition = BitNot(self.is_test_bit)
+
+            # An X and V rotation is requires to invert an V. This may also
+            # bump the number of X rotations.
+            inverse_x_condition ^= inverse_v_condition & BitNot(self.is_test_bit)
+            inverse_v_condition ^= BitNot(self.is_test_bit)
+            inverse_x_condition ^= BitNot(self.is_test_bit)
+
+        if inverse_t_multiple // 4:
+            x_condition = BitNot(self.is_test_bit)
+
+            # An X rotation is required to invert an X.
+            inverse_x_condition ^= BitNot(self.is_test_bit)
 
         # The conditions are replaced by the inverse rotation if a correction
         # is required.
@@ -754,6 +744,8 @@ class GraphCircuit(QubitManager):
             assert (
                 vertex_measure_order is not None
             ), f"Vertex {vertex} has flow but is an output. "
+
+            assert len(list(self.flow_graph.successors(vertex))) == 1
 
             vertex_flow = list(self.flow_graph.successors(vertex))[0]
 

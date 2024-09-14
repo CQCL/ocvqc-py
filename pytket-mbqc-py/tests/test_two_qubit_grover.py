@@ -22,7 +22,7 @@ def test_two_qubit_grove_grid(tau, ideal_output):
         api_handler=QuantinuumAPIOffline(),
     )
 
-    # DecomposeClassicalExp().apply(graph_circuit)
+    DecomposeClassicalExp().apply(graph_circuit)
     compiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
 
     n_shots = 100

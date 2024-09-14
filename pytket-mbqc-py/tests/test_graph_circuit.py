@@ -1,6 +1,5 @@
 import pytest
 from pytket.extensions.quantinuum import QuantinuumAPIOffline, QuantinuumBackend
-from pytket.passes import DecomposeClassicalExp
 
 from pytket_mbqc_py import GraphCircuit
 
@@ -22,7 +21,6 @@ def test_zero_state():
     backend = QuantinuumBackend(
         device_name="H1-1LE", api_handler=QuantinuumAPIOffline()
     )
-    # DecomposeClassicalExp().apply(circuit)
     compiled_circuit = backend.get_compiled_circuit(circuit)
     n_shots = 100
     result = backend.run_circuit(
@@ -61,7 +59,6 @@ def test_one_state():
         api_handler=QuantinuumAPIOffline(),
     )
 
-    # DecomposeClassicalExp().apply(circuit)
     compiled_circuit = backend.get_compiled_circuit(circuit)
     result = backend.run_circuit(
         circuit=compiled_circuit,

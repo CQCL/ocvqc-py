@@ -642,28 +642,6 @@ class GraphCircuit(QubitManager):
                     + f"but there is no vertex with order {vertex_measure_order - 1}."
                 )
 
-        # x_condition: BitLogicExp = BitZero()
-        # v_condition: BitLogicExp = BitZero()
-        # r_condition: BitLogicExp = BitZero()
-
-        # # The measurement angle needs to be inverted if a correction is
-        # # required. Here we calculate the inverse rotations conditions.
-        # inverse_x_condition: BitLogicExp = BitZero()
-        # inverse_v_condition: BitLogicExp = BitZero()
-        # inverse_r_condition: BitLogicExp = BitZero()
-
-        # self.add_c_setbits([False] * 6, [self.vertex_reg[vertex][i] for i in range(8,14)])
-
-        # x_condition: BitLogicExp = BitZero()
-        # v_condition: BitLogicExp = BitZero()
-        # r_condition: BitLogicExp = BitZero()
-
-        # The measurement angle needs to be inverted if a correction is
-        # required. Here we calculate the inverse rotations conditions.
-        # inverse_x_condition: BitLogicExp = BitZero()
-        # inverse_v_condition: BitLogicExp = BitZero()
-        # inverse_r_condition: BitLogicExp = BitZero()
-
         # Rotate measurement basis.
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8

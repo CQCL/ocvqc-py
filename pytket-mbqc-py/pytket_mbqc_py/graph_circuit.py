@@ -489,7 +489,6 @@ class GraphCircuit(QubitManager):
         :param vertex: Vertex to be corrected.
         """
         for neighbour in self.entanglement_graph.neighbors(n=vertex):
-
             self.add_c_xor(
                 arg0_in=self.vertex_reg[neighbour][4],
                 arg1_in=self.vertex_reg[vertex][0],
@@ -514,11 +513,10 @@ class GraphCircuit(QubitManager):
         # In the case that this is a compute round, no vertices are dummies,
         # and so this expression will again be false.
         for neighbour in self.entanglement_graph.neighbors(n=vertex):
-
             self.add_c_and(
                 arg0_in=self.vertex_reg[neighbour][5],
                 arg1_in=self.vertex_reg[neighbour][6],
-                arg_out=self.vertex_reg[neighbour][8]
+                arg_out=self.vertex_reg[neighbour][8],
             )
             self.add_c_xor(
                 arg0_in=self.vertex_reg[neighbour][8],
@@ -618,30 +616,36 @@ class GraphCircuit(QubitManager):
                     + f"{vertex_measure_order} "
                     + f"but there is no vertex with order {vertex_measure_order - 1}."
                 )
-            
+
         # Rotate measurement basis.
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8
 
-        r_condition: Union[BitLogicExp, Bit] = self.zero_bit
-        v_condition: Union[BitLogicExp, Bit] = self.zero_bit
-        x_condition: Union[BitLogicExp, Bit] = self.zero_bit
-        inverse_x_condition: Union[BitLogicExp, Bit] = self.zero_bit
-        inverse_v_condition: Union[BitLogicExp, Bit] = self.zero_bit
-        inverse_r_condition: Union[BitLogicExp, Bit] = self.zero_bit
-
         # There is no measurement rotation in the case of test rounds.
         # Here the condition is being set to false in that case.
         if inverse_t_multiple % 2:
-            r_condition = self.is_test_bit ^ self.one_bit
+            r_condition: Union[BitLogicExp, Bit] = self.is_test_bit ^ self.one_bit
 
             # An X, V and R rotation is requires to invert an R
-            inverse_x_condition = self.is_test_bit ^ self.one_bit
-            inverse_v_condition = self.is_test_bit ^ self.one_bit
-            inverse_r_condition = self.is_test_bit ^ self.one_bit
+            inverse_x_condition: Union[BitLogicExp, Bit] = (
+                self.is_test_bit ^ self.one_bit
+            )
+            inverse_v_condition: Union[BitLogicExp, Bit] = (
+                self.is_test_bit ^ self.one_bit
+            )
+            inverse_r_condition: Union[BitLogicExp, Bit] = (
+                self.is_test_bit ^ self.one_bit
+            )
+
+        else:
+            r_condition = self.zero_bit
+
+            inverse_x_condition = self.zero_bit
+            inverse_v_condition = self.zero_bit
+            inverse_r_condition = self.zero_bit
 
         if (inverse_t_multiple % 4) // 2:
-            v_condition = self.is_test_bit ^ self.one_bit
+            v_condition: Union[BitLogicExp, Bit] = self.is_test_bit ^ self.one_bit
 
             # An X and V rotation is requires to invert an V. This may also
             # bump the number of X rotations.
@@ -651,11 +655,17 @@ class GraphCircuit(QubitManager):
             inverse_v_condition ^= self.is_test_bit ^ self.one_bit
             inverse_x_condition ^= self.is_test_bit ^ self.one_bit
 
+        else:
+            v_condition = self.zero_bit
+
         if inverse_t_multiple // 4:
-            x_condition = self.is_test_bit ^ self.one_bit
+            x_condition: Union[BitLogicExp, Bit] = self.is_test_bit ^ self.one_bit
 
             # An X rotation is required to invert an X.
             inverse_x_condition ^= self.is_test_bit ^ self.one_bit
+
+        else:
+            x_condition = self.zero_bit
 
         # The conditions are replaced by the inverse rotation if a correction
         # is required.
@@ -714,7 +724,7 @@ class GraphCircuit(QubitManager):
         self.add_c_xor(
             arg0_in=self.vertex_reg[vertex][0],
             arg1_in=self.vertex_reg[vertex][7],
-            arg_out=self.vertex_reg[vertex][0]
+            arg_out=self.vertex_reg[vertex][0],
         )  # Undo measurement result one time pad.
         self.vertex_measured[vertex] = True
 

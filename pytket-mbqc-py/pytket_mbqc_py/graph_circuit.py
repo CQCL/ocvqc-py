@@ -103,6 +103,7 @@ class GraphCircuit(QubitManager):
         #   - 5 : Is dummy register
         #   - 6 : Dummy randomness
         #   - 7 : Measurement one-time pad
+        #   - 8 : Scratch register
         # When qubits are added they will be initialised in this
         # random register. This is except for the case of input qubits
         # which are initialised in the 0 state, and in which case this
@@ -116,7 +117,7 @@ class GraphCircuit(QubitManager):
         self.vertex_reg = [
             self.add_c_register(
                 name=f"vertex_{vertex_index}",
-                size=8,
+                size=9,
             )
             for vertex_index in range(n_logical_qubits)
         ]
@@ -476,78 +477,54 @@ class GraphCircuit(QubitManager):
             v_of_edge=vertex_two,
         )
 
-    def _get_x_correction_expression(self, vertex: int) -> Union[BitLogicExp, Bit]:
-        """Create logical expression by taking the parity of
-        the Z corrections that have to be applied to the neighbouring
-        qubits.
-
-        :param vertex: Vertex to be corrected.
-        :return: Logical expression calculating the parity
-            of the neighbouring Z correction registers.
-        """
-
-        neighbour_reg_list = [
-            self.vertex_reg[neighbour][4]
-            for neighbour in self.entanglement_graph.neighbors(n=vertex)
-        ]
-
-        # This happens of this vertex has no neighbours.
-        if len(neighbour_reg_list) == 0:
-            return self.zero_bit
-
-        return reduce(lambda a, b: a ^ b, neighbour_reg_list)
-
     def _apply_classical_x_correction(self, vertex: int) -> None:
         """Apply X correction on measurement result. This correction is calculated
         using the Z corrections that have to be applied to the neighbouring
         qubits.
 
-        :param vertex: Vertex to be corrected.
-        """
-        condition = self._get_x_correction_expression(vertex=vertex)
-        self.add_classicalexpbox_bit(
-            expression=self.vertex_reg[vertex][0] ^ condition,
-            target=[self.vertex_reg[vertex][0]],
-        )
-
-    def _get_dummy_correction_expression(self, vertex: int) -> Union[BitLogicExp, Bit]:
-        """Create correction expressions. A correction is needed if the
-        neighbour is a dummy and was initialised in the |-> state.
-        The relevant expression is obtained by combining the value for
-        all neighbours.
+        Create logical expression by taking the parity of
+        the Z corrections that have to be applied to the neighbouring
+        qubits.
 
         :param vertex: Vertex to be corrected.
-        :type vertex: int
-        :return: Logical expression giving correction.
-        :rtype: BitLogicExp
         """
-        neighbour_reg_list = [
-            self.vertex_reg[neighbour][5] & self.vertex_reg[neighbour][6]
-            for neighbour in self.entanglement_graph.neighbors(n=vertex)
-        ]
+        for neighbour in self.entanglement_graph.neighbors(n=vertex):
 
-        # This happens if this vertex has no neighbours.
-        if len(neighbour_reg_list) == 0:
-            return self.zero_bit
-
-        # Note that for dummy vertices, all of the surrounding vertices
-        # should be traps. As such this expression will always be false.
-        # In the case that this is a compute round, no vertices are dummies,
-        # and so this expression will again be false.
-        return reduce(lambda a, b: a ^ b, neighbour_reg_list)
+            self.add_c_xor(
+                arg0_in=self.vertex_reg[neighbour][4],
+                arg1_in=self.vertex_reg[vertex][0],
+                arg_out=self.vertex_reg[vertex][0],
+            )
 
     def _apply_dummy_correction(self, vertex: int) -> None:
         """Apply dummy correction expression. This correction is applied
         if the vertex itself is not a dummy vertex.
 
+        A correction is needed if the
+        neighbour is a dummy and was initialised in the |-> state.
+        The relevant expression is obtained by combining the value for
+        all neighbours.
+
         :param vertex: _description_
         :type vertex: int
         """
-        condition = self._get_dummy_correction_expression(vertex=vertex)
-        self.add_classicalexpbox_bit(
-            expression=self.vertex_reg[vertex][0] ^ condition,
-            target=[self.vertex_reg[vertex][0]],
-        )
+
+        # Note that for dummy vertices, all of the surrounding vertices
+        # should be traps. As such this expression will always be false.
+        # In the case that this is a compute round, no vertices are dummies,
+        # and so this expression will again be false.
+        for neighbour in self.entanglement_graph.neighbors(n=vertex):
+
+            self.add_c_and(
+                arg0_in=self.vertex_reg[neighbour][5],
+                arg1_in=self.vertex_reg[neighbour][6],
+                arg_out=self.vertex_reg[neighbour][8]
+            )
+            self.add_c_xor(
+                arg0_in=self.vertex_reg[neighbour][8],
+                arg1_in=self.vertex_reg[vertex][0],
+                arg_out=self.vertex_reg[vertex][0],
+            )
 
     def corrected_measure(self, vertex: int, t_multiple: int = 0) -> None:
         """Perform a measurement, applying the appropriate corrections.
@@ -641,7 +618,7 @@ class GraphCircuit(QubitManager):
                     + f"{vertex_measure_order} "
                     + f"but there is no vertex with order {vertex_measure_order - 1}."
                 )
-
+            
         # Rotate measurement basis.
         inverse_t_multiple = 8 - t_multiple
         inverse_t_multiple = inverse_t_multiple % 8
@@ -734,9 +711,10 @@ class GraphCircuit(QubitManager):
         self.managed_measure(qubit=self.vertex_qubit[vertex])
         self._apply_classical_x_correction(vertex=vertex)
         self._apply_dummy_correction(vertex=vertex)
-        self.add_classicalexpbox_bit(
-            expression=self.vertex_reg[vertex][0] ^ self.vertex_reg[vertex][7],
-            target=[self.vertex_reg[vertex][0]],
+        self.add_c_xor(
+            arg0_in=self.vertex_reg[vertex][0],
+            arg1_in=self.vertex_reg[vertex][7],
+            arg_out=self.vertex_reg[vertex][0]
         )  # Undo measurement result one time pad.
         self.vertex_measured[vertex] = True
 
@@ -758,9 +736,10 @@ class GraphCircuit(QubitManager):
 
             # Add an x correction to the flow of the
             # measured vertex.
-            self.add_classicalexpbox_bit(
-                expression=self.vertex_reg[vertex][0] ^ self.vertex_reg[vertex_flow][4],
-                target=[self.vertex_reg[vertex_flow][4]],
+            self.add_c_xor(
+                arg0_in=self.vertex_reg[vertex][0],
+                arg1_in=self.vertex_reg[vertex_flow][4],
+                arg_out=self.vertex_reg[vertex_flow][4],
             )
 
     def _add_vertex_check(self, measurement_order: Union[int, None]) -> None:

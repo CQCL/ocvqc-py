@@ -1,6 +1,5 @@
 import pytest
 from pytket.extensions.quantinuum import QuantinuumAPIOffline, QuantinuumBackend
-from pytket.passes import DecomposeClassicalExp
 
 from pytket_mbqc_py import CNOTBlock
 
@@ -67,7 +66,6 @@ def test_cnot_grid_verified(input_string, n_layers, output_state):
     )
 
     compiled_graph_circuit = backend.get_compiled_circuit(circuit=graph_circuit)
-    DecomposeClassicalExp().apply(compiled_graph_circuit)
 
     n_shots = 100
     result = backend.run_circuit(circuit=compiled_graph_circuit, n_shots=n_shots)

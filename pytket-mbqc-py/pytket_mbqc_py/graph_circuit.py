@@ -126,14 +126,14 @@ class GraphCircuit(QubitManager):
             bit_list=[
                 bit
                 for register in self.vertex_reg
-                for bit in register.to_list()[1:4]
-                + [register.to_list()[6]]
-                + [register.to_list()[7]]
+                for bit in [register.to_list()[1]]
+                # + [register.to_list()[6]]
+                # + [register.to_list()[7]]
             ]
         )
 
-        self.is_test_bit = Bit(name="is_test_bit", index=0)
-        self.add_bit(id=self.is_test_bit)
+        # self.is_test_bit = Bit(name="is_test_bit", index=0)
+        # self.add_bit(id=self.is_test_bit)
 
         self.zero_bit = Bit(name="zero_bit", index=0)
         self.add_bit(id=self.zero_bit)
@@ -144,46 +144,47 @@ class GraphCircuit(QubitManager):
         self.add_c_setbits([True], [self.one_bit])
 
         if len(self.vertex_is_dummy_list) == 0:
-            self.add_c_setbits(
-                values=[False],
-                args=[self.is_test_bit],
-            )
+            # self.add_c_setbits(
+            #     values=[False],
+            #     args=[self.is_test_bit],
+            # )
+            pass
 
-        elif len(self.vertex_is_dummy_list) == 2:
-            self.populate_random_bits(bit_list=[self.is_test_bit])
+        # elif len(self.vertex_is_dummy_list) == 2:
+        #     self.populate_random_bits(bit_list=[self.is_test_bit])
 
-            for vertex_is_dummy in self.vertex_is_dummy_list:
-                if not len(vertex_is_dummy) == n_logical_qubits:
-                    raise Exception(
-                        "There must be a colour for each of the logical qubits. "
-                        f"In this case there are {n_logical_qubits} "
-                        f"logical qubits and {len(vertex_is_dummy)} colours."
-                    )
+        #     for vertex_is_dummy in self.vertex_is_dummy_list:
+        #         if not len(vertex_is_dummy) == n_logical_qubits:
+        #             raise Exception(
+        #                 "There must be a colour for each of the logical qubits. "
+        #                 f"In this case there are {n_logical_qubits} "
+        #                 f"logical qubits and {len(vertex_is_dummy)} colours."
+        #             )
 
-            colour_choice_bit = Bit(name="colour_choice_bit", index=0)
-            self.add_bit(colour_choice_bit)
-            self.populate_random_bits(bit_list=[colour_choice_bit])
+        #     colour_choice_bit = Bit(name="colour_choice_bit", index=0)
+        #     self.add_bit(colour_choice_bit)
+        #     self.populate_random_bits(bit_list=[colour_choice_bit])
 
-            for is_dummy, register in zip(
-                self.vertex_is_dummy_list[0], self.vertex_reg
-            ):
-                self.add_c_setbits(
-                    values=[is_dummy],
-                    args=[register[5]],
-                    condition=colour_choice_bit & self.is_test_bit,
-                )
+        #     for is_dummy, register in zip(
+        #         self.vertex_is_dummy_list[0], self.vertex_reg
+        #     ):
+        #         self.add_c_setbits(
+        #             values=[is_dummy],
+        #             args=[register[5]],
+        #             condition=colour_choice_bit & self.is_test_bit,
+        #         )
 
-            for is_dummy, register in zip(
-                self.vertex_is_dummy_list[1], self.vertex_reg
-            ):
-                self.add_c_setbits(
-                    values=[is_dummy],
-                    args=[register[5]],
-                    condition=(colour_choice_bit ^ self.one_bit) & self.is_test_bit,
-                )
+        #     for is_dummy, register in zip(
+        #         self.vertex_is_dummy_list[1], self.vertex_reg
+        #     ):
+        #         self.add_c_setbits(
+        #             values=[is_dummy],
+        #             args=[register[5]],
+        #             condition=(colour_choice_bit ^ self.one_bit) & self.is_test_bit,
+        #         )
 
-        else:
-            raise Exception("You can only use 0 or two colours.")
+        # else:
+        #     raise Exception("You can only use 0 or two colours.")
 
         # Isolate the initialisation randomness generation from the
         # rest of the circuit.
@@ -290,19 +291,19 @@ class GraphCircuit(QubitManager):
 
         # Initialise random X basis state if this vertex is a dummy.
         # Otherwise |0> state is created.
-        self.H(qubit, condition=self.vertex_reg[index][5])
-        self.Z(qubit, condition=self.vertex_reg[index][6])
+        # self.H(qubit, condition=self.vertex_reg[index][5])
+        # self.Z(qubit, condition=self.vertex_reg[index][6])
 
         self._add_vertex(qubit=qubit, measurement_order=measurement_order)
 
         # The graph state is randomly initialised based on the
         # initialisation register.
         self.Rx(0.25, qubit, condition=self.vertex_reg[index][1])
-        self.V(qubit, condition=self.vertex_reg[index][2])
-        self.X(qubit, condition=self.vertex_reg[index][3])
+        # self.V(qubit, condition=self.vertex_reg[index][2])
+        # self.X(qubit, condition=self.vertex_reg[index][3])
 
         # Measurement one-time pad.
-        self.X(qubit, condition=self.vertex_reg[index][7])
+        # self.X(qubit, condition=self.vertex_reg[index][7])
 
         return index
 
@@ -623,62 +624,70 @@ class GraphCircuit(QubitManager):
 
         # There is no measurement rotation in the case of test rounds.
         # Here the condition is being set to false in that case.
-        if inverse_t_multiple % 2:
-            r_condition: Union[BitLogicExp, Bit] = self.is_test_bit ^ self.one_bit
+        # if inverse_t_multiple % 2:
+        #     # r_condition: Union[BitLogicExp, Bit] = self.is_test_bit ^ self.one_bit
 
-            # An X, V and R rotation is requires to invert an R
-            inverse_x_condition: Union[BitLogicExp, Bit] = (
-                self.is_test_bit ^ self.one_bit
-            )
-            inverse_v_condition: Union[BitLogicExp, Bit] = (
-                self.is_test_bit ^ self.one_bit
-            )
-            inverse_r_condition: Union[BitLogicExp, Bit] = (
-                self.is_test_bit ^ self.one_bit
-            )
+        #     # An X, V and R rotation is requires to invert an R
+        #     inverse_x_condition: Union[BitLogicExp, Bit] = (
+        #         self.is_test_bit ^ self.one_bit
+        #     )
+        #     inverse_v_condition: Union[BitLogicExp, Bit] = (
+        #         self.is_test_bit ^ self.one_bit
+        #     )
+        #     # inverse_r_condition: Union[BitLogicExp, Bit] = (
+        #     #     self.is_test_bit ^ self.one_bit
+        #     # )
 
-        else:
-            r_condition = self.zero_bit
+        # else:
+        #     # r_condition = self.zero_bit
 
-            inverse_x_condition = self.zero_bit
-            inverse_v_condition = self.zero_bit
-            inverse_r_condition = self.zero_bit
+        #     inverse_x_condition = self.zero_bit
+        #     inverse_v_condition = self.zero_bit
+        #     # inverse_r_condition = self.zero_bit
 
-        if (inverse_t_multiple % 4) // 2:
-            v_condition: Union[BitLogicExp, Bit] = self.is_test_bit ^ self.one_bit
+        # if (inverse_t_multiple % 4) // 2:
+        #     v_condition: Union[BitLogicExp, Bit] = self.is_test_bit ^ self.one_bit
 
-            # An X and V rotation is requires to invert an V. This may also
-            # bump the number of X rotations.
-            inverse_x_condition ^= inverse_v_condition & (
-                self.is_test_bit ^ self.one_bit
-            )
-            inverse_v_condition ^= self.is_test_bit ^ self.one_bit
-            inverse_x_condition ^= self.is_test_bit ^ self.one_bit
+        #     # An X and V rotation is requires to invert an V. This may also
+        #     # bump the number of X rotations.
+        #     inverse_x_condition ^= inverse_v_condition & (
+        #         self.is_test_bit ^ self.one_bit
+        #     )
+        #     inverse_v_condition ^= self.is_test_bit ^ self.one_bit
+        #     inverse_x_condition ^= self.is_test_bit ^ self.one_bit
 
-        else:
-            v_condition = self.zero_bit
+        # else:
+        #     v_condition = self.zero_bit
 
-        if inverse_t_multiple // 4:
-            x_condition: Union[BitLogicExp, Bit] = self.is_test_bit ^ self.one_bit
+        # if inverse_t_multiple // 4:
+        #     x_condition: Union[BitLogicExp, Bit] = self.is_test_bit ^ self.one_bit
 
-            # An X rotation is required to invert an X.
-            inverse_x_condition ^= self.is_test_bit ^ self.one_bit
+        #     # An X rotation is required to invert an X.
+        #     inverse_x_condition ^= self.is_test_bit ^ self.one_bit
 
-        else:
-            x_condition = self.zero_bit
+        # else:
+        #     x_condition = self.zero_bit
+
+        x_condition = self.zero_bit
+        v_condition = self.zero_bit
+        inverse_v_condition = self.zero_bit
+
+        print("inverse_t_multiple: ", inverse_t_multiple)
 
         # The conditions are replaced by the inverse rotation if a correction
         # is required.
-        r_condition ^= (r_condition ^ inverse_r_condition) & self.vertex_reg[vertex][4]
+        # r_condition ^= (r_condition ^ inverse_r_condition) & self.vertex_reg[vertex][4]
         v_condition ^= (v_condition ^ inverse_v_condition) & self.vertex_reg[vertex][4]
-        x_condition ^= (x_condition ^ inverse_x_condition) & self.vertex_reg[vertex][4]
+        # x_condition ^= (x_condition ^ inverse_x_condition) & self.vertex_reg[vertex][4]
+
+        r_condition = self.zero_bit
 
         # Now we invert the initialisation one time pad.
         # Required to invert random Rx(0.25) from initialisation.
         r_init_correction = self.vertex_reg[vertex][1]
 
         x_condition ^= v_condition & (r_condition & r_init_correction)
-        v_condition ^= r_condition & r_init_correction
+        # v_condition ^= r_condition & r_init_correction
         r_condition ^= r_init_correction
 
         self.Rx(
@@ -708,24 +717,26 @@ class GraphCircuit(QubitManager):
                 # Required to invert random Rx(0.25) from initialisation.
                 self.vertex_reg[vertex][1]
                 # Required to invert random V from initialisation.
-                ^ self.vertex_reg[vertex][2]
-                ^ (self.vertex_reg[vertex][1] & self.vertex_reg[vertex][2])
+                # ^ self.vertex_reg[vertex][2]
+                # ^ (self.vertex_reg[vertex][1] & self.vertex_reg[vertex][2])
                 # Required to invert random X from initialisation.
-                ^ self.vertex_reg[vertex][3]
+                # ^ self.vertex_reg[vertex][3]
                 ^ x_condition
             ),
         )
 
         # measure and apply the necessary x corrections
         # classically.
+        # if vertex == 1:
+        #     self.H(self.vertex_qubit[vertex])
         self.managed_measure(qubit=self.vertex_qubit[vertex])
         self._apply_classical_x_correction(vertex=vertex)
-        self._apply_dummy_correction(vertex=vertex)
-        self.add_c_xor(
-            arg0_in=self.vertex_reg[vertex][0],
-            arg1_in=self.vertex_reg[vertex][7],
-            arg_out=self.vertex_reg[vertex][0],
-        )  # Undo measurement result one time pad.
+        # self._apply_dummy_correction(vertex=vertex)
+        # self.add_c_xor(
+        #     arg0_in=self.vertex_reg[vertex][0],
+        #     arg1_in=self.vertex_reg[vertex][7],
+        #     arg_out=self.vertex_reg[vertex][0],
+        # )  # Undo measurement result one time pad.
         self.vertex_measured[vertex] = True
 
         # Check that the vertex has at most one flow vertex

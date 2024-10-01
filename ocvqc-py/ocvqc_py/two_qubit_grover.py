@@ -3,7 +3,7 @@ Module implementing the 2 qubit grover example from:
 https://journals.aps.org/pra/abstract/10.1103/PhysRevA.104.062422.
 """
 
-from pytket_mbqc_py import GraphCircuit
+from ocvqc_py import GraphCircuit
 
 
 class TwoQubitGrover(GraphCircuit):

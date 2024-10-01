@@ -1,7 +1,7 @@
 import pytest
 from pytket import Qubit
 
-from pytket_mbqc_py import QubitManager
+from ocvqc_py import QubitManager
 
 
 def test_simple_measurement():

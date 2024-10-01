@@ -1,7 +1,7 @@
 import pytest
 from pytket.extensions.quantinuum import QuantinuumAPIOffline, QuantinuumBackend
 
-from pytket_mbqc_py import GraphCircuit
+from ocvqc_py import GraphCircuit
 
 
 class VerifiedCNOT(GraphCircuit):

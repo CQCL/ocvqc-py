@@ -3,7 +3,7 @@ from pytket.extensions.quantinuum import QuantinuumAPIOffline, QuantinuumBackend
 from pytket.passes import DecomposeClassicalExp
 from pytket.qasm import circuit_from_qasm_str, circuit_to_qasm_str
 
-from pytket_mbqc_py import CNOTBlock
+from ocvqc_py import CNOTBlock
 
 
 @pytest.mark.parametrize(

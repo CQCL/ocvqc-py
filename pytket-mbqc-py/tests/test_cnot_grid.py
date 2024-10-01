@@ -80,6 +80,8 @@ def test_cnot_grid_verified(input_string, n_layers, output_state):
     )
     qasm_graph_circuit = circuit_from_qasm_str(qasm_graph_circuit_str, maxwidth=256)
 
+    DecomposeClassicalExp().apply(qasm_graph_circuit)
+
     compiled_graph_circuit = backend.get_compiled_circuit(circuit=qasm_graph_circuit)
 
     result = backend.run_circuit(circuit=compiled_graph_circuit, n_shots=n_shots)

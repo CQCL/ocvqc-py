@@ -1,7 +1,7 @@
-Qubit Manager
+Graph Circuit
 =============
 
-.. automodule:: pytket_mbqc_py.qubit_manager
+.. automodule:: ocvqc_py.graph_circuit
     :members:
     :show-inheritance:
     :special-members:

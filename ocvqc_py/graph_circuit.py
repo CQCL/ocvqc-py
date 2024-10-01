@@ -15,7 +15,7 @@ from pytket.circuit.logic_exp import BitLogicExp
 from pytket.unit_id import Bit, BitRegister, UnitID
 from pytket.utils.outcomearray import OutcomeArray
 
-from pytket_mbqc_py.qubit_manager import QubitManager
+from ocvqc_py.qubit_manager import QubitManager
 
 
 class GraphCircuit(QubitManager):

@@ -7,7 +7,7 @@ from typing import Tuple, Union
 
 from numpy.random import Generator, default_rng
 
-from pytket_mbqc_py import GraphCircuit
+from ocvqc_py import GraphCircuit
 
 
 class RandomIdentityGraph(GraphCircuit):

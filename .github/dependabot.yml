@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: pip
-    directory: "ocvqc-py"
+    directory: "ocvqc_py"
     schedule:
       interval: "weekly"
     target-branch: "main"

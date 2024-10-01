@@ -31,10 +31,10 @@ jobs:
           cache: 'pip'
 
       - name: Install pytket-mbqc
-        run: pip install ocvqc-py/
+        run: pip install .
 
       - name: Type Check
-        run: mypy ocvqc-py/ocvqc_py/ --warn-unused-ignores
+        run: mypy ocvqc_py/ --warn-unused-ignores
 
       - name: Lint Check
         run: ruff check
@@ -43,10 +43,10 @@ jobs:
         run: ruff format --check
 
       - name: Run Tests
-        run: pytest --cov-fail-under=100 --cov-report term-missing:skip-covered --cov=ocvqc-py/ocvqc_py/ ocvqc-py/tests/ --durations=10
+        run: pytest --cov-fail-under=100 --cov-report term-missing:skip-covered --cov=ocvqc_py/ tests/ --durations=10
 
       - name: Examples check
-        run: pytest --nbmake ocvqc-py/example_notebooks/*.ipynb
+        run: pytest --nbmake example_notebooks/*.ipynb
 
 
   Build-Documentation:
@@ -64,18 +64,17 @@ jobs:
           cache: 'pip'
 
       - name: Install pytket-benchmarking
-        run: pip install ocvqc-py/
+        run: pip install .
 
       - name: Check Documentation coverage
-        run: docstr-coverage ocvqc-py/ocvqc_py
+        run: docstr-coverage ocvqc_py
 
       - name: Build documentation
         run: |
-          cd ocvqc-py
           make html
 
       - name: Save documentation
         uses: actions/upload-artifact@v4
         with:
           name: docs_html
-          path: ocvqc-py/build/html
+          path: build/html

@@ -21,7 +21,7 @@ docstr-coverage = "^2.3.2"
 sphinx = "^8.0.2"
 sphinx-autodoc-typehints = "^2.4.0"
 nbmake = "^1.5.4"
-pytket = "1.33.0rc0"
+pytket = "1.33.0"
 
 [build-system]
 requires = ["poetry-core"]

@@ -2757,17 +2757,17 @@ zx = ["autoray (>=0.6.12)", "numba (>=0.60.0)", "quimb (>=1.8.2)"]
 
 [[package]]
 name = "pytket-pecos"
-version = "0.1.29"
+version = "0.1.30"
 description = "This package enables emulation of pytket circuits using the PECOS emulator."
 optional = false
 python-versions = "*"
 files = [
-    {file = "pytket_pecos-0.1.29-py2.py3-none-any.whl", hash = "sha256:b5ca7dded10f3d8b598f68e19ab9c80d1514246a1b13f681199b80a058aaeb03"},
-    {file = "pytket_pecos-0.1.29.tar.gz", hash = "sha256:6ba86cc8af142a5f6904b355e40f994360ba9f5769e9b6ecafe797be234da303"},
+    {file = "pytket_pecos-0.1.30-py2.py3-none-any.whl", hash = "sha256:8f644e1902cbd73ee231b2923822afa1a7a2f6f7264a8b69bc0ff6feb8287057"},
+    {file = "pytket_pecos-0.1.30.tar.gz", hash = "sha256:e3be5d8941d904556800b84450118a5573396c5c03a0b68070afc1e606c7d2b4"},
 ]
 
 [package.dependencies]
-pytket = ">=1.30"
+pytket = ">=1.33"
 pytket-phir = ">=0.8.0"
 quantum-pecos = {version = ">=0.6.0.dev3", extras = ["simulators", "wasmtime"]}
 
@@ -4028,4 +4028,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "<3.12,>=3.10"
-content-hash = "9cbbbfff4204b9bf123bccc2fd6619d7d36c2ee66663d502b8a058ed5684b007"
+content-hash = "c36dd0318e9335c04ee63dd0133b556ed7b517451b421d55876f921ca1625f06"

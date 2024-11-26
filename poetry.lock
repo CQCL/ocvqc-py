@@ -2794,26 +2794,26 @@ tests = ["pytest"]
 
 [[package]]
 name = "pytket-qir"
-version = "0.12.0"
+version = "0.13.0"
 description = "Extension for pytket, providing functions for conversion into to qir"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "pytket_qir-0.12.0-py3-none-any.whl", hash = "sha256:157d9f0c6ef073c61e563429e56f4ea5cdbd3143c3ab85bd71de1146c5a32157"},
+    {file = "pytket_qir-0.13.0-py3-none-any.whl", hash = "sha256:f345ff08bfd7b759a211a0bdca28222f95a18fa693264baaee95d1b8640165e9"},
 ]
 
 [package.dependencies]
-pyqir = ">=0.10.3"
-pytket = ">=1.30.0"
+pyqir = ">=0.10.4"
+pytket = ">=1.32.0"
 
 [[package]]
 name = "pytket-quantinuum"
-version = "0.37.0"
+version = "0.38.1"
 description = "Extension for pytket, providing access to Quantinuum backends"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "pytket_quantinuum-0.37.0-py3-none-any.whl", hash = "sha256:068a2fbf43c8fe7d132d48191c2d342af70d6b9040854b9ffa10c12c12c72e81"},
+    {file = "pytket_quantinuum-0.38.1-py3-none-any.whl", hash = "sha256:3a52c9b02507aada7ec163420d3bdf26d9c8094d0fa85ea826ba19ce31a3d44d"},
 ]
 
 [package.dependencies]
@@ -2821,11 +2821,11 @@ msal = ">=1.18,<2.0"
 nest-asyncio = ">=1.2"
 numpy = ">=1.26.4"
 pyjwt = ">=2.4,<3.0"
-pytket = ">=1.31.0"
-pytket-qir = ">=0.12.0"
-requests = ">=2.2"
+pytket = ">=1.33.0"
+pytket-qir = ">=0.13,<0.14"
+requests = ">=2.32.2"
 types-requests = "*"
-websockets = ">=7.0"
+websockets = ">=13.1"
 
 [package.extras]
 calendar = ["matplotlib (>=3.8.3,<3.10.0)", "pandas (>=2.2.1,<2.3.0)"]
@@ -4028,4 +4028,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "<3.12,>=3.10"
-content-hash = "a4f562acdde595eeacb5867cf29f71827185b81e9dccbe492fe0e98f12a4eacb"
+content-hash = "c2e666c3a97f350069acdb6376c7f6f42aae5411d01bc629e9ddb3c30bb1f089"

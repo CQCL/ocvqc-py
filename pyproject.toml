@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "<3.12,>=3.10"
-notebook = "^6.5.7"
+notebook = "^7.3.1"
 pytket-quantinuum = "^0.41.0"
 pytket_pecos = "^0.1.30"
 pytest = "^8.3.4"

@@ -2826,12 +2826,12 @@ pytket = ">=1.34.0"
 
 [[package]]
 name = "pytket-quantinuum"
-version = "0.41.0"
+version = "0.42.0"
 description = "Extension for pytket, providing access to Quantinuum backends"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "pytket_quantinuum-0.41.0-py3-none-any.whl", hash = "sha256:632fb515a7a5ce197a521a72d2a6553151b9c2cf42611af2b5c3ab3a245393ea"},
+    {file = "pytket_quantinuum-0.42.0-py3-none-any.whl", hash = "sha256:45f124475f212659cd7e9b5382a383240d12df5efb961afdd48760134f9a7884"},
 ]
 
 [package.dependencies]
@@ -2839,7 +2839,7 @@ msal = ">=1.18,<2.0"
 nest_asyncio = ">=1.2"
 numpy = ">=1.26.4"
 pyjwt = ">=2.4,<3.0"
-pytket = ">=1.35.0"
+pytket = ">=1.37.0"
 pytket-qir = ">=0.17,<0.18"
 requests = ">=2.32.2"
 types-requests = "*"
@@ -2847,7 +2847,7 @@ websockets = ">=13.1"
 
 [package.extras]
 calendar = ["matplotlib (>=3.8.3,<3.10.0)", "pandas (>=2.2.1,<2.3.0)"]
-pecos = ["pytket-pecos (>=0.1.31,<0.2.0)"]
+pecos = ["pytket-pecos (>=0.1.32,<0.2.0)"]
 
 [[package]]
 name = "pywin32"
@@ -4017,4 +4017,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "<3.12,>=3.10"
-content-hash = "5184922074619830f62b2db36c210325f1b9880888051c92f9291f5b115e4c82"
+content-hash = "c601be453b683a686a0df20fa5257540be686dd674a523885d33c3e432a9a07d"

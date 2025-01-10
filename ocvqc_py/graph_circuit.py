@@ -371,12 +371,12 @@ class GraphCircuit(QubitManager):
 
         # If edges are in the entanglement_graph they should be in
         # the flow_graph. It would be a bug if not.
-        assert (
-            vertex_one in self.flow_graph.nodes
-        ), f"Vertex {vertex_one} missing from flow graph"
-        assert (
-            vertex_two in self.flow_graph.nodes
-        ), f"Vertex {vertex_two} missing from flow graph"
+        assert vertex_one in self.flow_graph.nodes, (
+            f"Vertex {vertex_one} missing from flow graph"
+        )
+        assert vertex_two in self.flow_graph.nodes, (
+            f"Vertex {vertex_two} missing from flow graph"
+        )
 
         # Check that edges only point towards output vertices.
         # This ensures that output vertices do not have flow.
@@ -550,9 +550,9 @@ class GraphCircuit(QubitManager):
         vertex_measure_order = self.measurement_order_list[vertex]
 
         if vertex_measure_order is None:
-            assert (
-                vertex not in self._vertices_with_flow
-            ), "Output vertices should not have flow."
+            assert vertex not in self._vertices_with_flow, (
+                "Output vertices should not have flow."
+            )
 
         if (vertex not in self._vertices_with_flow) and (
             vertex_measure_order is not None
@@ -732,9 +732,9 @@ class GraphCircuit(QubitManager):
         assert len(list(self.flow_graph.successors(vertex))) <= 1
 
         if vertex in self._vertices_with_flow:
-            assert (
-                vertex_measure_order is not None
-            ), f"Vertex {vertex} has flow but is an output. "
+            assert vertex_measure_order is not None, (
+                f"Vertex {vertex} has flow but is an output. "
+            )
 
             assert len(list(self.flow_graph.successors(vertex))) == 1
 

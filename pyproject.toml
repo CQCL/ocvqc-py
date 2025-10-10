@@ -19,7 +19,7 @@ pytest-parallel = ">=0.1,<0.2"
 py = ">=1.11,<1.12"
 docstr-coverage = ">=2.3,<2.4"
 sphinx = ">=8.2,<8.3"
-sphinx-autodoc-typehints = ">=3.2,<3.4"
+sphinx-autodoc-typehints = ">=3.2,<3.6"
 nbmake = ">=1.5,<1.6"
 pytket = ">=2.9,<2.10"
 

@@ -8,7 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "<3.14,>=3.11"
 notebook = ">=7.4,<7.6"
-pytket-quantinuum = ">=0.53,<0.55"
+pytket-quantinuum = ">=0.53,<0.56"
 pytket_pecos = ">=0.2,<0.3"
 pytest = ">=8.4,<9.1"
 pytest-cov = ">=6.2,<7.1"
